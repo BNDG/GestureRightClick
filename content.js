@@ -23,7 +23,8 @@ window.addEventListener("resize", updateCanvasSize);
 
 // 记录右键点击的时间
 let lastClickTime = 0;
-const doubleClickThreshold = 125; // 双击的时间间隔（毫秒）
+const doubleClickThreshold = 200; // 双击的时间间隔（毫秒）
+let isDoubleClick = false; // 用来标记是否为双击
 
 document.addEventListener("contextmenu", (event) => {
     // 获取当前时间戳
@@ -32,9 +33,12 @@ document.addEventListener("contextmenu", (event) => {
     // 判断两次点击的间隔是否小于双击的阈值
     if (currentTime - lastClickTime < doubleClickThreshold) {
         // 如果是双击，允许默认的右键菜单弹出
+        console.log("允许默认的右键菜单弹出");
+        isDoubleClick = true; // 标记为双击
         return;  // 不阻止右键菜单弹出
     } else {
         // 如果是普通右键点击，阻止右键菜单弹出
+        isDoubleClick = false;
         event.preventDefault();
     }
 
@@ -44,7 +48,7 @@ document.addEventListener("contextmenu", (event) => {
 
 // 右键按下时开始记录轨迹
 document.addEventListener("mousedown", (event) => {
-    if (event.button === 2) {
+    if (event.button === 2 && !isDoubleClick) { // 只有不是双击的右键按下才记录轨迹
         isRightClicking = true;
         mouseTrail = []; // 清空轨迹
     }
@@ -52,6 +56,9 @@ document.addEventListener("mousedown", (event) => {
 
 // 右键释放时结束手势轨迹
 document.addEventListener("mouseup", (event) => {
+    if(isDoubleClick) {
+        return;
+    }
     if (event.button === 2) { // 右键
         isRightClicking = false;
         if (mouseTrail.length > 0) {
@@ -68,11 +75,16 @@ document.addEventListener("mouseup", (event) => {
                 }
             });
         }
+        // 重置双击标记
+        isDoubleClick = false;
     }
 });
 
 // 记录鼠标移动轨迹并绘制
 document.addEventListener("mousemove", (event) => {
+    if(isDoubleClick) {
+        return;
+    }
     if (isRightClicking) {
         // 使用 clientX 和 clientY 获取相对于视口的坐标
         const x = event.clientX + window.scrollX;
@@ -97,7 +109,6 @@ document.addEventListener("mousemove", (event) => {
         ctx.stroke();
     }
 });
-
 
 // 向页面滚动一页
 function scrollOnePageDown() {
