@@ -8,7 +8,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         isV = false;
         let trail = msg.trail;
         if (trail.length < 6) return; // 如果轨迹太短，忽略
-        console.log("trail:", trail.length);
         // 调用时判断轨迹是否符合 L 形
         if (isLShape(trail)) {
             console.log('这是一个 L 形轨迹！触发关闭标签页');
@@ -58,8 +57,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return true;
     }
 });
-const angleThreshold = 20; // 角度容差（度）
-
 // 线性拟合，返回斜率
 function fitLine(points) {
     let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
@@ -138,10 +135,11 @@ function isLShape(originTrail) {
     const originSlope2 = fitLine(originP2);
     const originAngle = calculateAngle(originSlope1, originSlope2);
     console.log(`originAngle = ${originAngle} originSlope1 = ${originSlope1} originSlope2 = ${originSlope2}`);
+    const distanceX = originTrail[0].x - originTrail[originTrail.length - 1].x;
     if (Math.abs(angleL) > 65 && Math.abs(angleL) < 105) {
         // L 65--105
         return true;
-    } else if (Math.abs(originAngle) > 10 && Math.abs(originAngle) < 65) {
+    } else if (Math.abs(distanceX) > 30 && Math.abs(originAngle) > 10 && Math.abs(originAngle) < 65) {
         //
         if (originSlope1 < 0 && originSlope2 > 0) {
             // ^
