@@ -1,27 +1,38 @@
-let gestureThreshold = 8; // 手势的阈值，轨迹超过该值才判定为有效手势
-
+let gestureThreshold = 30; // 手势的阈值，轨迹超过该值才判定为有效手势
+let isInvertedV = false;
+let isV = false;
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     console.log("收到消息:", msg);
     if (msg.type === "mouseGesture") {
+        isInvertedV = false;
+        isV = false;
         let trail = msg.trail;
-        if (trail.length < gestureThreshold) return; // 如果轨迹太短，忽略
-
+        if (trail.length < 6) return; // 如果轨迹太短，忽略
+        console.log("trail:", trail.length);
         // 调用时判断轨迹是否符合 L 形
         if (isLShape(trail)) {
             console.log('这是一个 L 形轨迹！触发关闭标签页');
             // 获取当前活动的标签页并关闭
-            chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+            chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
                 if (tabs.length > 0) {
                     let tab = tabs[0];  // 获取当前标签页
-                    chrome.tabs.remove(tab.id, function() {
+                    chrome.tabs.remove(tab.id, function () {
                         console.log(`标签页 ${tab.id} 已关闭`);
                     });
                 }
             });
-        } else if(isInvertedVShape(trail)) {
+        } else if (isInvertedV) {
             console.log('这是一个 ^ 形轨迹！');
-        } else if(isVShape(trail)) {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                const tab = tabs[0];
+                chrome.tabs.sendMessage(tab.id, { type: 'scrollToBottom' });
+            });
+        } else if (isV) {
             console.log('这是一个 V 形轨迹！');
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                const tab = tabs[0];
+                chrome.tabs.sendMessage(tab.id, { type: 'scrollToTop' });
+            });
         } else {
             console.log('这不是一个 L 形轨迹。');
             // 判断轨迹
@@ -37,10 +48,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 });
             } else if (isSwipeRight(trail)) {
                 console.log("向右滑动");
-                // chrome.tabs.goForward(); // 前进
+                chrome.tabs.goForward(); // 前进
             } else if (isSwipeLeft(trail)) {
                 console.log("向左滑动");
-                // chrome.tabs.goBack(); // 后退
+                chrome.tabs.goBack(); // 后退
             }
         }
         sendResponse({status: "success"});
@@ -48,15 +59,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
 });
 const angleThreshold = 20; // 角度容差（度）
-const slopeChangeThreshold = 0.5; // 斜率变化阈值
-const minSegmentLength = 3; // 每个轨迹段的最小点数
-
-// 去除重复点
-function removeDuplicates(points) {
-    return points.filter((point, index) =>
-        index === 0 || point.x !== points[index - 1].x || point.y !== points[index - 1].y
-    );
-}
 
 // 线性拟合，返回斜率
 function fitLine(points) {
@@ -98,58 +100,62 @@ function processTrackData(mouseTrail, xThreshold = 8) {
     }
 }
 
-// 根据斜率变化判断转折点
-function splitTrackBySlopeChange(mouseTrail, threshold) {
-    processTrackData(mouseTrail);
+function removeDuplicates(points) {
+    const filteredPoints = [points[0]]; // 保留第一个点
 
-    for (let i = 1; i < mouseTrail.length - 1; i++) {
-        const prev = mouseTrail[i - 1];
-        const curr = mouseTrail[i];
-        const next = mouseTrail[i + 1];
+    for (let i = 1; i < points.length; i++) {
+        const lastPoint = filteredPoints[filteredPoints.length - 1];
+        const currentPoint = points[i];
 
-        const deltaX1 = curr.x - prev.x;
-        const deltaY1 = curr.y - prev.y;
-        const deltaX2 = next.x - curr.x;
-        const deltaY2 = next.y - curr.y;
-
-        const slope1 = deltaX1 !== 0 ? deltaY1 / deltaX1 : Infinity;
-        const slope2 = deltaX2 !== 0 ? deltaY2 / deltaX2 : Infinity;
-
-        if (slope1 === Infinity || slope2 === Infinity) continue;
-
-        const slopeChange = Math.abs(slope1 - slope2);
-        if (slopeChange > threshold) {
-            if (i >= minSegmentLength && mouseTrail.length - i >= minSegmentLength) {
-                return [
-                    mouseTrail.slice(0, i),   // 第一个轨迹段
-                    mouseTrail.slice(i)       // 第二个轨迹段
-                ];
-            }
-            break;
+        // 判断 x 和 y 坐标的变化是否都在 8 以内
+        if (Math.abs(lastPoint.x - currentPoint.x) > 8 || Math.abs(lastPoint.y - currentPoint.y) > 8) {
+            filteredPoints.push(currentPoint);
         }
     }
-
-    return [mouseTrail]; // 如果无法找到合适的分割点或分割后的段太短，则返回整个轨迹
+    if (filteredPoints.length === 1) {
+        filteredPoints.push(points[points.length - 1]);
+    }
+    console.log("filter = " + filteredPoints.length);
+    return filteredPoints;
 }
 
-function isLShape(mouseTrail) {
-    const filteredTrail = removeDuplicates(mouseTrail);
-    if (filteredTrail.length < 6) return false; // 至少需要6个点才能更好地拟合
-
+function isLShape(originTrail) {
+    const mouseTrail = removeDuplicates(originTrail);
     const [fittingPoints1, fittingPoints2] = [
         mouseTrail.slice(0, mouseTrail.length / 2),   // 第一个轨迹段
         mouseTrail.slice(mouseTrail.length / 2)       // 第二个轨迹段
     ];
-    if (fittingPoints1.length < minSegmentLength || fittingPoints2.length < minSegmentLength) {
-        return false; // 每个轨迹段至少需要minSegmentLength个点
-    }
+    const slope1L = fitLine(fittingPoints1);
+    const slope2L = fitLine(fittingPoints2);
+    const angleL = calculateAngle(slope1L, slope2L);
 
-    const slope1 = fitLine(fittingPoints1);
-    const slope2 = fitLine(fittingPoints2);
-    const angle = calculateAngle(slope1, slope2);
-    console.log("angle = " + angle);
-    return Math.abs(angle - 90) < angleThreshold; // 判断是否形成L形 (角度接近90度)
+    const [originP1, originP2] = [
+        originTrail.slice(0, originTrail.length / 2),   // 第一个轨迹段
+        originTrail.slice(originTrail.length / 2)       // 第二个轨迹段
+    ];
+    console.log(`angle = ${angleL} slope1 = ${slope1L} slope2 = ${slope2L}`);
+    const originSlope1 = fitLine(originP1);
+    const originSlope2 = fitLine(originP2);
+    const originAngle = calculateAngle(originSlope1, originSlope2);
+    console.log(`originAngle = ${originAngle} originSlope1 = ${originSlope1} originSlope2 = ${originSlope2}`);
+    if (Math.abs(angleL) > 65 && Math.abs(angleL) < 105) {
+        // L 65--105
+        return true;
+    } else if (Math.abs(originAngle) > 10 && Math.abs(originAngle) < 65) {
+        //
+        if (originSlope1 < 0 && originSlope2 > 0) {
+            // ^
+            isInvertedV = true;
+        }
+        if (originSlope1 > 0 && originSlope2 < 0) {
+            // V
+            isV = true;
+        }
+    } else {
+        return false;
+    }
 }
+
 function isInvertedVShape(mouseTrail) {
     if (mouseTrail.length < 3) return false;
 
@@ -166,11 +172,11 @@ function isInvertedVShape(mouseTrail) {
 
         // 寻找下降段
         if (!upSegment && Y1 < 0) {
-            upSegment = { start: prev, end: curr };
+            upSegment = {start: prev, end: curr};
         }
         // 寻找上升段
         else if (upSegment && Y2 > 0) {
-            downSegment = { start: curr, end: next };
+            downSegment = {start: curr, end: next};
             break;
         }
     }
@@ -199,11 +205,11 @@ function isVShape(mouseTrail) {
 
         // 寻找上升段
         if (!downSegment && Y1 > 0) {
-            downSegment = { start: prev, end: curr };
+            downSegment = {start: prev, end: curr};
         }
         // 寻找下降段
         else if (downSegment && Y2 < 0) {
-            upSegment = { start: curr, end: next };
+            upSegment = {start: curr, end: next};
             break;
         }
     }

@@ -56,7 +56,7 @@ document.addEventListener("mousedown", (event) => {
 
 // 右键释放时结束手势轨迹
 document.addEventListener("mouseup", (event) => {
-    if(isDoubleClick) {
+    if (isDoubleClick) {
         return;
     }
     if (event.button === 2) { // 右键
@@ -82,7 +82,7 @@ document.addEventListener("mouseup", (event) => {
 
 // 记录鼠标移动轨迹并绘制
 document.addEventListener("mousemove", (event) => {
-    if(isDoubleClick) {
+    if (isDoubleClick) {
         return;
     }
     if (isRightClicking) {
@@ -90,7 +90,7 @@ document.addEventListener("mousemove", (event) => {
         const x = event.clientX + window.scrollX;
         const y = event.clientY + window.scrollY;
 
-        mouseTrail.push({ x: x, y: y });
+        mouseTrail.push({x: x, y: y});
 
         // 限制轨迹长度
         if (mouseTrail.length > maxTrailLength) {
@@ -131,10 +131,25 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === "scrollOnePageDown") {
         console.log("执行向下滚动操作")
         scrollOnePageDown(); // 执行向下滚动操作
-        sendResponse({ status: "success" });
+        sendResponse({status: "success"});
     } else if (msg.type === "scrollOnePageUp") {
         console.log("执行向上滚动操作")
         scrollOnePageUp(); // 执行向上滚动操作
-        sendResponse({ status: "success" });
+        sendResponse({status: "success"});
+    } else if (msg.type === "scrollToBottom") {
+        scrollToBottom();
+        sendResponse({status: "success"});
+    } else if (msg.type === "scrollToTop") {
+        scrollToTop();
+        sendResponse({status: "success"});
     }
 });
+
+function scrollToTop() {
+    window.scrollTo(0, 0);
+}
+
+// 滚动到页面底部
+function scrollToBottom() {
+    window.scrollTo(0, document.body.scrollHeight);
+}
