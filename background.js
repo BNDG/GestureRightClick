@@ -22,15 +22,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             });
         } else if (isInvertedV) {
             console.log('这是一个 ^ 形轨迹！');
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
                 const tab = tabs[0];
-                chrome.tabs.sendMessage(tab.id, { type: 'scrollToBottom' });
+                chrome.tabs.sendMessage(tab.id, {type: 'scrollToBottom'});
             });
         } else if (isV) {
             console.log('这是一个 V 形轨迹！');
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
                 const tab = tabs[0];
-                chrome.tabs.sendMessage(tab.id, { type: 'scrollToTop' });
+                chrome.tabs.sendMessage(tab.id, {type: 'scrollToTop'});
             });
         } else {
             console.log('这不是一个 L 形轨迹。');
@@ -47,16 +47,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 });
             } else if (isSwipeRight(trail)) {
                 console.log("向右滑动");
-                chrome.tabs.goForward(); // 前进
+                // 例子：执行前进操作
+                chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, {type: "goForward"});
+                });
             } else if (isSwipeLeft(trail)) {
                 console.log("向左滑动");
-                chrome.tabs.goBack(); // 后退
+                chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, {type: "goBack"});
+                });
             }
         }
         sendResponse({status: "success"});
         return true;
     }
 });
+
 // 线性拟合，返回斜率
 function fitLine(points) {
     let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;

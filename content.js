@@ -4,10 +4,12 @@ let isRightClicking = false;
 
 // 用于绘制轨迹的 canvas 元素
 const canvas = document.createElement("canvas");
-canvas.style.position = "absolute";
+canvas.style.position = 'fixed'; // 固定定位
 canvas.style.top = "0";
 canvas.style.left = "0";
 canvas.style.pointerEvents = "none"; // 不阻塞其他事件
+canvas.width = window.innerWidth; // 设置为窗口的宽度
+canvas.height = window.innerHeight; // 设置为窗口的高度
 canvas.style.zIndex = "9999";
 document.body.appendChild(canvas);
 
@@ -77,6 +79,7 @@ document.addEventListener("mouseup", (event) => {
         }
         // 重置双击标记
         isDoubleClick = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除画布上的内容
     }
 });
 
@@ -87,8 +90,8 @@ document.addEventListener("mousemove", (event) => {
     }
     if (isRightClicking) {
         // 使用 clientX 和 clientY 获取相对于视口的坐标
-        const x = event.clientX + window.scrollX;
-        const y = event.clientY + window.scrollY;
+        const x = event.clientX;
+        const y = event.clientY;
 
         mouseTrail.push({x: x, y: y});
 
@@ -98,14 +101,14 @@ document.addEventListener("mousemove", (event) => {
         }
 
         // 绘制轨迹
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除之前的轨迹
         ctx.beginPath();
         ctx.moveTo(mouseTrail[0].x, mouseTrail[0].y);
         for (let i = 1; i < mouseTrail.length; i++) {
             ctx.lineTo(mouseTrail[i].x, mouseTrail[i].y);
         }
         ctx.strokeStyle = "rgba(0, 0, 255, 0.7)";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3;
         ctx.stroke();
     }
 });
@@ -142,6 +145,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     } else if (msg.type === "scrollToTop") {
         scrollToTop();
         sendResponse({status: "success"});
+    } else if(msg.type === "goForward") {
+        if (window.history.length > 1) {
+            window.history.forward();
+        } else {
+            console.log("No more pages to go forward.");
+        }
+    } else if(msg.type === "goBack") {
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            console.log("No previous pages.");
+        }
     }
 });
 

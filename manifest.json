@@ -3,6 +3,7 @@
     "name": "Mouse Gesture Extension",
     "version": "1.0",
     "permissions": [
+        "history",
         "tabs"
     ],
     "background": {
