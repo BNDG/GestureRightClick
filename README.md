@@ -13,6 +13,7 @@ Mac上的Edge一直没有内置的手势，扩展市场里也找不到crxMouse G
 - **向上再向下**：将页面滚动到底部。
 
 <img src="./edgeMouse.png" alt="示例图片" style="width: 80%; height: auto;">
+
 ## 使用
 ### 加载扩展程序
    1. 下载项目。
