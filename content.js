@@ -1,7 +1,8 @@
 let mouseTrail = [];
 const maxTrailLength = 100;
 let isRightClicking = false;
-
+let prePoint = null;
+let currentTextTips = null;
 // 用于绘制轨迹的 canvas 元素
 const canvas = document.createElement("canvas");
 canvas.style.position = 'fixed'; // 固定定位
@@ -27,7 +28,6 @@ window.addEventListener("resize", updateCanvasSize);
 let lastClickTime = 0;
 const doubleClickThreshold = 200; // 双击的时间间隔（毫秒）
 let isDoubleClick = false; // 用来标记是否为双击
-
 document.addEventListener("contextmenu", (event) => {
     // 获取当前时间戳
     const currentTime = new Date().getTime();
@@ -40,6 +40,7 @@ document.addEventListener("contextmenu", (event) => {
         return;  // 不阻止右键菜单弹出
     } else {
         // 如果是普通右键点击，阻止右键菜单弹出
+        console.log("普通右键点击，阻止右键菜单弹出");
         isDoubleClick = false;
         event.preventDefault();
     }
@@ -47,12 +48,12 @@ document.addEventListener("contextmenu", (event) => {
     // 更新最后一次点击的时间
     lastClickTime = currentTime;
 });
-
 // 右键按下时开始记录轨迹
 document.addEventListener("mousedown", (event) => {
     if (event.button === 2 && !isDoubleClick) { // 只有不是双击的右键按下才记录轨迹
         isRightClicking = true;
         mouseTrail = []; // 清空轨迹
+        currentTextTips = "";
     }
 });
 
@@ -67,8 +68,7 @@ document.addEventListener("mouseup", (event) => {
             // 发送手势数据给后台
             console.log("发送手势数据给后台");
             chrome.runtime.sendMessage({
-                type: "mouseGesture",
-                trail: mouseTrail,
+                type: "mouseAction"
             }, (response) => {
                 if (chrome.runtime.lastError) {
                     console.log("发送消息失败: ", chrome.runtime.lastError);
@@ -92,9 +92,29 @@ document.addEventListener("mousemove", (event) => {
         // 使用 clientX 和 clientY 获取相对于视口的坐标
         const x = event.clientX;
         const y = event.clientY;
-
         mouseTrail.push({x: x, y: y});
-
+        if (prePoint === null) {
+            prePoint = {x: x, y: y};
+        }
+        if (mouseTrail.length > 1) {
+            let currentPoint = {x: x, y: y};
+            let distance = Math.sqrt(Math.pow(currentPoint.x - prePoint.x, 2) + Math.pow(currentPoint.y - prePoint.y, 2));
+            if (distance > 10) {
+                prePoint = currentPoint;
+                chrome.runtime.sendMessage({
+                    type: "mousePoint",
+                    point: currentPoint
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.log("发送消息失败: ", chrome.runtime.lastError);
+                    } else {
+                        console.log("消息发送成功:", response);
+                    }
+                });
+            } else {
+                console.log("忽略变化小点");
+            }
+        }
         // 限制轨迹长度
         if (mouseTrail.length > maxTrailLength) {
             mouseTrail.shift();
@@ -110,9 +130,46 @@ document.addEventListener("mousemove", (event) => {
         ctx.strokeStyle = "rgba(0, 0, 255, 0.7)";
         ctx.lineWidth = 3;
         ctx.stroke();
+        // 绘制半透明方框和文字提示
+        if (currentTextTips !== null && currentTextTips !== "")  {
+            drawTextBoxAndMessage();
+        }
     }
 });
+// 添加函数来绘制提示框和文字
+function drawTextBoxAndMessage() {
+    // 计算屏幕中心坐标
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
 
+    // 设置方框的宽度和高度
+    const boxWidth = 280;
+    const boxHeight = 130;
+
+    // 计算方框左上角坐标，使其位于屏幕中央
+    const boxX = centerX - boxWidth / 2;
+    const boxY = centerY - boxHeight / 2;
+
+    // 绘制半透明矩形背景
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";  // 半透明黑色
+    ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+    // 设置文字样式
+    ctx.font = "20px Arial";  // 字体和大小
+    ctx.fillStyle = "white";  // 文字颜色
+    ctx.textAlign = "center";  // 水平居中对齐
+    ctx.textBaseline = "middle";  // 垂直居中对齐
+
+    // 测量文本宽度
+    const textWidth = ctx.measureText(currentTextTips).width;
+
+    // 计算文本在矩形框内的位置
+    const textX = centerX;  // 水平居中
+    const textY = centerY;  // 垂直居中
+
+    // 绘制文本
+    ctx.fillText(currentTextTips, textX, textY);
+}
 // 向页面滚动一页
 function scrollOnePageDown() {
     window.scrollBy({
@@ -145,18 +202,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     } else if (msg.type === "scrollToTop") {
         scrollToTop();
         sendResponse({status: "success"});
-    } else if(msg.type === "goForward") {
+    } else if (msg.type === "goForward") {
         if (window.history.length > 1) {
             window.history.forward();
         } else {
             console.log("No more pages to go forward.");
         }
-    } else if(msg.type === "goBack") {
+    } else if (msg.type === "goBack") {
         if (window.history.length > 1) {
             window.history.back();
         } else {
             console.log("No previous pages.");
         }
+    } else if (msg.type === "refreshPage") {
+        window.location.reload();
+    } else if (msg.type === "directionTips") {
+        currentTextTips = msg.text;
     }
 });
 
