@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Mouse Gesture Extension",
+    "name": "Simple Mouse Gesture",
     "version": "1.0",
     "permissions": [
         "history",
@@ -14,9 +14,6 @@
             "matches": ["<all_urls>"],
             "js": ["content.js"]
         }
-    ],
-    "host_permissions": [
-        "<all_urls>"
     ],
     "icons": {
         "16": "icons/icon.png",
