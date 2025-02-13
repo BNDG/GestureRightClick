@@ -1,3 +1,4 @@
+import { log } from './logUtils.js';
 class Direction {
     static Up = 0;
     static Right = 1;
@@ -17,12 +18,12 @@ const downUpDirections = [Direction.Down, Direction.Up];
 const rightUpDirections = [Direction.Right, Direction.Up];
 const rightDownDirections = [Direction.Right, Direction.Down];
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    console.log("收到消息:", msg);
+    log("收到消息:", msg);
     if (msg.type === "mousePoint") {
         if (trail.length === 0) {
             // 将第一个点加入轨迹
             trail.push(msg.point);
-            console.log("将第一个点加入轨迹:", msg.point);
+            log("将第一个点加入轨迹:", msg.point);
         } else {
             trail.push(msg.point);
             // 有了两个点 可以计算方位角
@@ -30,64 +31,63 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
         sendResponse({ status: "success" });
     } else if (msg.type === "mouseAction") {
-        console.log("最终方向数组：", allDirections);
+        log("最终方向数组：", allDirections);
         // 处理手势
         if (isSameDirection(allDirections, downRightDirections)) {
-            console.log('这是一个 L 形轨迹！触发关闭标签页');
+            log('这是一个 L 形轨迹！触发关闭标签页');
             // 获取当前活动的标签页并关闭
             chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
                 if (tabs.length > 0) {
                     let tab = tabs[0];  // 获取当前标签页
                     chrome.tabs.remove(tab.id, function () {
-                        console.log(`标签页 ${tab.id} 已关闭`);
+                        log(`标签页 ${tab.id} 已关闭`);
                     });
                 }
             });
         } else if (isSameDirection(allDirections, upDownDirections)) {
-            console.log('这是一个 ^ 形轨迹！');
+            log('这是一个 ^ 形轨迹！');
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 const tab = tabs[0];
                 chrome.tabs.sendMessage(tab.id, { type: 'scrollToBottom' });
             });
         } else if (isSameDirection(allDirections, downUpDirections)) {
-            console.log('这是一个 V 形轨迹！');
+            log('这是一个 V 形轨迹！');
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 const tab = tabs[0];
                 chrome.tabs.sendMessage(tab.id, { type: 'scrollToTop' });
             });
         } else if (isSameDirection(allDirections, downDirections)) {
-            console.log("向下滑动");
+            log("向下滑动");
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 chrome.tabs.sendMessage(tabs[0].id, { type: "scrollOnePageDown" }); // 发送向下滚动命令
             });
         } else if (isSameDirection(allDirections, upDirections)) {
-            console.log("向上滑动");
+            log("向上滑动");
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 chrome.tabs.sendMessage(tabs[0].id, { type: "scrollOnePageUp" }); // 发送向上滚动命令
             });
         } else if (isSameDirection(allDirections, rightDirections)) {
-            console.log("向右滑动");
+            log("向右滑动");
             // 例子：执行前进操作
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 chrome.tabs.sendMessage(tabs[0].id, { type: "goForward" });
             });
         } else if (isSameDirection(allDirections, leftDirections)) {
-            console.log("向左滑动");
+            log("向左滑动");
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 chrome.tabs.sendMessage(tabs[0].id, { type: "goBack" });
             });
         } else if (isSameDirection(allDirections, rightDownDirections)) {
-            console.log("⎤形轨迹");
+            log("⎤形轨迹");
             // 刷新页面
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 chrome.tabs.sendMessage(tabs[0].id, { type: "refreshPage" });
             });
         } else {
-            console.log("没有匹配到任何手势");
+            log("没有匹配到任何手势");
         }
         // 清空方向数组
         trail = [];
-        bearings = [];
         allDirections = [];
         sendResponse({ status: "success" });
     }
@@ -126,7 +126,7 @@ function processAzimuth(simpleTrail) {
     if (bearing > 345) {
         bearing = 360 - bearing;
     }
-    console.log(`bearing = ${bearing}`)
+    log(`bearing = ${bearing}`)
     // 计算初始方向
     if (allDirections.length === 0) {
         currentDirection = calcDirection(bearing);

@@ -1,3 +1,9 @@
+const isDebug = true; // 或者从外部获取（如通过 query 参数）
+function log(message) {
+    if (isDebug) {
+        console.log(message);
+    }
+}
 let mouseTrail = [];
 const maxTrailLength = 100;
 let isRightClicking = false;
@@ -35,12 +41,12 @@ document.addEventListener("contextmenu", (event) => {
     // 判断两次点击的间隔是否小于双击的阈值
     if (currentTime - lastClickTime < doubleClickThreshold) {
         // 如果是双击，允许默认的右键菜单弹出
-        console.log("允许默认的右键菜单弹出");
+        log("允许默认的右键菜单弹出");
         isDoubleClick = true; // 标记为双击
         return;  // 不阻止右键菜单弹出
     } else {
         // 如果是普通右键点击，阻止右键菜单弹出
-        console.log("普通右键点击，阻止右键菜单弹出");
+        log("普通右键点击，阻止右键菜单弹出");
         isDoubleClick = false;
         event.preventDefault();
     }
@@ -66,14 +72,14 @@ document.addEventListener("mouseup", (event) => {
         isRightClicking = false;
         if (mouseTrail.length > 0) {
             // 发送手势数据给后台
-            console.log("发送手势数据给后台");
+            log("发送手势数据给后台");
             chrome.runtime.sendMessage({
                 type: "mouseAction"
             }, (response) => {
                 if (chrome.runtime.lastError) {
-                    console.log("发送消息失败: ", chrome.runtime.lastError);
+                    log("发送消息失败: ", chrome.runtime.lastError);
                 } else {
-                    console.log("消息发送成功:", response);
+                    log("消息发送成功:", response);
                 }
             });
         }
@@ -106,16 +112,17 @@ document.addEventListener("mousemove", (event) => {
                     point: currentPoint
                 }, (response) => {
                     if (chrome.runtime.lastError) {
-                        console.log("发送消息失败: ", chrome.runtime.lastError);
+                        log("发送消息失败: ", chrome.runtime.lastError);
                     } else {
-                        console.log("消息发送成功:", response);
+                        log("消息发送成功:", response);
                     }
                 });
             } else {
-                console.log("忽略变化小点");
+                // 调用公共方法log输出 开发模式可以打印 发布模式关闭
+                log("忽略变化小点");
             }
         }
-        // 限制轨迹长度
+        // 限制轨迹长度 
         if (mouseTrail.length > maxTrailLength) {
             mouseTrail.shift();
         }
@@ -189,11 +196,11 @@ function scrollOnePageUp() {
 // 监听来自背景脚本的消息
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === "scrollOnePageDown") {
-        console.log("执行向下滚动操作")
+        log("执行向下滚动操作")
         scrollOnePageDown(); // 执行向下滚动操作
         sendResponse({status: "success"});
     } else if (msg.type === "scrollOnePageUp") {
-        console.log("执行向上滚动操作")
+        log("执行向上滚动操作")
         scrollOnePageUp(); // 执行向上滚动操作
         sendResponse({status: "success"});
     } else if (msg.type === "scrollToBottom") {
@@ -206,13 +213,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (window.history.length > 1) {
             window.history.forward();
         } else {
-            console.log("No more pages to go forward.");
+            log("No more pages to go forward.");
         }
     } else if (msg.type === "goBack") {
         if (window.history.length > 1) {
             window.history.back();
         } else {
-            console.log("No previous pages.");
+            log("No previous pages.");
         }
     } else if (msg.type === "refreshPage") {
         window.location.reload();
