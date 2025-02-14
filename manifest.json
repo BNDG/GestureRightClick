@@ -4,11 +4,12 @@
     "version": "1.0",
     "permissions": [
         "history",
-        "tabs"
+        "tabs",
+        "sessions"
     ],
     "background": {
         "service_worker": "background.js",
-        "type": "module" 
+        "type": "module"
     },
     "content_scripts": [
         {

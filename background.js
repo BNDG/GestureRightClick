@@ -5,6 +5,8 @@ class Direction {
     static Down = 2;
     static Left = 3;
 }
+// 方位角阈值
+const azimuthThreshold = 35;
 let trail = [];
 let allDirections = [];
 let currentDirection = Direction.Down;
@@ -17,8 +19,27 @@ const upDownDirections = [Direction.Up, Direction.Down];
 const downUpDirections = [Direction.Down, Direction.Up];
 const rightUpDirections = [Direction.Right, Direction.Up];
 const rightDownDirections = [Direction.Right, Direction.Down];
+let restoredSessionIds = [];
+// 获取最近关闭的标签页，限制数量为所有
+function restoreLastClosedTab() {
+    chrome.sessions.getRecentlyClosed({}, (sessions) => {
+        // 过滤掉已经恢复的标签页
+        const unrecoveredTabs = sessions.filter(session => session.tab && !restoredSessionIds.includes(session.tab.sessionId));
+    
+        if (unrecoveredTabs.length > 0) {
+            const nextTab = unrecoveredTabs[0].tab;
+            // 记录恢复的会话ID
+            restoredSessionIds.push(nextTab.sessionId);
+            // 恢复标签页
+            chrome.sessions.restore(nextTab.sessionId);
+        } else {
+            console.log("No more closed tabs to restore.");
+        }
+    });
+}
+
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    log("收到消息:", msg);
     if (msg.type === "mousePoint") {
         if (trail.length === 0) {
             // 将第一个点加入轨迹
@@ -83,6 +104,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 chrome.tabs.sendMessage(tabs[0].id, { type: "refreshPage" });
             });
+        } else if (isSameDirection(allDirections, rightUpDirections)) {
+            log("⎦形轨迹");
+            restoreLastClosedTab();
         } else {
             log("没有匹配到任何手势");
         }
@@ -112,6 +136,8 @@ function sendDirectionTips() {
         tips = "前进";
     } else if (isSameDirection(allDirections, leftDirections)) {
         tips = "后退";
+    } else if (isSameDirection(allDirections, rightUpDirections)){
+        tips = "重新打开已关闭的标签页";
     } else {
         tips = "无效手势";
     }
@@ -122,11 +148,14 @@ function sendDirectionTips() {
 
 // 计算方位角
 function processAzimuth(simpleTrail) {
-    let bearing = calculateBearing(simpleTrail[simpleTrail.length - 2], simpleTrail[simpleTrail.length - 1]);
-    if (bearing > 345) {
+    let prePoint = simpleTrail[simpleTrail.length - 2];
+    let currentPoint = simpleTrail[simpleTrail.length - 1];
+    let bearing = calculateBearing(prePoint, currentPoint);
+    if (bearing > 360 - azimuthThreshold) {
         bearing = 360 - bearing;
     }
-    log(`bearing = ${bearing}`)
+    // 输出两个点坐标和方位角
+    log("坐标和方位角：", prePoint, currentPoint, bearing);
     // 计算初始方向
     if (allDirections.length === 0) {
         currentDirection = calcDirection(bearing);
@@ -143,15 +172,17 @@ function processAzimuth(simpleTrail) {
     sendDirectionTips()
 }
 
+
 function calcDirection(startAngle) {
     let direction = Direction.Down;
-    if (Math.abs(startAngle - 270) < 35) {
+    // 根据角度计算方向
+    if (Math.abs(startAngle - 270) < azimuthThreshold) {
         direction = Direction.Down;
-    } else if (Math.abs(startAngle - 90) < 35) {
+    } else if (Math.abs(startAngle - 90) < azimuthThreshold) {
         direction = Direction.Up;
-    } else if (Math.abs(startAngle - 180) < 35) {
+    } else if (Math.abs(startAngle - 180) < azimuthThreshold) {
         direction = Direction.Left;
-    } else if (Math.abs(startAngle) < 35) {
+    } else if (Math.abs(startAngle) < azimuthThreshold) {
         direction = Direction.Right;
     }
     return direction;
