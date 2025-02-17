@@ -5,8 +5,8 @@ class Direction {
     static Down = 2;
     static Left = 3;
 }
-// 方位角阈值
-const azimuthThreshold = 35;
+// 方位角阈值 ->0(360) ↑90 ←180 ↓270
+const azimuthThreshold = 45;
 let trail = [];
 let allDirections = [];
 let currentDirection = Direction.Down;
@@ -18,6 +18,7 @@ const downRightDirections = [Direction.Down, Direction.Right];
 const upDownDirections = [Direction.Up, Direction.Down];
 const downUpDirections = [Direction.Down, Direction.Up];
 const rightUpDirections = [Direction.Right, Direction.Up];
+const leftUpDirections = [Direction.Left, Direction.Up];
 const rightDownDirections = [Direction.Right, Direction.Down];
 let restoredSessionIds = [];
 // 获取最近关闭的标签页，限制数量为所有
@@ -25,7 +26,7 @@ function restoreLastClosedTab() {
     chrome.sessions.getRecentlyClosed({}, (sessions) => {
         // 过滤掉已经恢复的标签页
         const unrecoveredTabs = sessions.filter(session => session.tab && !restoredSessionIds.includes(session.tab.sessionId));
-    
+
         if (unrecoveredTabs.length > 0) {
             const nextTab = unrecoveredTabs[0].tab;
             // 记录恢复的会话ID
@@ -55,7 +56,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         log("最终方向数组：", allDirections);
         // 处理手势
         if (isSameDirection(allDirections, downRightDirections)) {
-            log('这是一个 L 形轨迹！触发关闭标签页');
             // 获取当前活动的标签页并关闭
             chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
                 if (tabs.length > 0) {
@@ -66,49 +66,40 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 }
             });
         } else if (isSameDirection(allDirections, upDownDirections)) {
-            log('这是一个 ^ 形轨迹！');
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 const tab = tabs[0];
                 chrome.tabs.sendMessage(tab.id, { type: 'scrollToBottom' });
             });
         } else if (isSameDirection(allDirections, downUpDirections)) {
-            log('这是一个 V 形轨迹！');
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 const tab = tabs[0];
                 chrome.tabs.sendMessage(tab.id, { type: 'scrollToTop' });
             });
         } else if (isSameDirection(allDirections, downDirections)) {
-            log("向下滑动");
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 chrome.tabs.sendMessage(tabs[0].id, { type: "scrollOnePageDown" }); // 发送向下滚动命令
             });
         } else if (isSameDirection(allDirections, upDirections)) {
-            log("向上滑动");
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 chrome.tabs.sendMessage(tabs[0].id, { type: "scrollOnePageUp" }); // 发送向上滚动命令
             });
         } else if (isSameDirection(allDirections, rightDirections)) {
-            log("向右滑动");
             // 例子：执行前进操作
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 chrome.tabs.sendMessage(tabs[0].id, { type: "goForward" });
             });
         } else if (isSameDirection(allDirections, leftDirections)) {
-            log("向左滑动");
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 chrome.tabs.sendMessage(tabs[0].id, { type: "goBack" });
             });
         } else if (isSameDirection(allDirections, rightDownDirections)) {
-            log("⎤形轨迹");
             // 刷新页面
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 chrome.tabs.sendMessage(tabs[0].id, { type: "refreshPage" });
             });
-        } else if (isSameDirection(allDirections, rightUpDirections)) {
-            log("⎦形轨迹");
+        } else if (isSameDirection(allDirections, leftUpDirections)) {
             restoreLastClosedTab();
         } else {
-            log("没有匹配到任何手势");
         }
         // 清空方向数组
         trail = [];
@@ -136,7 +127,7 @@ function sendDirectionTips() {
         tips = "前进";
     } else if (isSameDirection(allDirections, leftDirections)) {
         tips = "后退";
-    } else if (isSameDirection(allDirections, rightUpDirections)){
+    } else if (isSameDirection(allDirections, leftUpDirections)) {
         tips = "重新打开已关闭的标签页";
     } else {
         tips = "无效手势";
@@ -160,11 +151,13 @@ function processAzimuth(simpleTrail) {
     if (allDirections.length === 0) {
         currentDirection = calcDirection(bearing);
         allDirections.push(currentDirection);
+        log("初始方向：", currentDirection)
     } else {
         currentDirection = allDirections[allDirections.length - 1];
         let nextDirection = calcDirection(bearing);
         // 仅在方向发生变化时记录
         if (nextDirection !== currentDirection) {
+            log("方向变化：", nextDirection);
             allDirections.push(nextDirection);
             currentDirection = nextDirection; // 更新当前方向
         }
@@ -176,14 +169,14 @@ function processAzimuth(simpleTrail) {
 function calcDirection(startAngle) {
     let direction = Direction.Down;
     // 根据角度计算方向
-    if (Math.abs(startAngle - 270) < azimuthThreshold) {
-        direction = Direction.Down;
+    if (Math.abs(startAngle) < azimuthThreshold) {
+        direction = Direction.Right;
     } else if (Math.abs(startAngle - 90) < azimuthThreshold) {
         direction = Direction.Up;
     } else if (Math.abs(startAngle - 180) < azimuthThreshold) {
         direction = Direction.Left;
-    } else if (Math.abs(startAngle) < azimuthThreshold) {
-        direction = Direction.Right;
+    } else if (Math.abs(startAngle - 270) < azimuthThreshold) {
+        direction = Direction.Down;
     }
     return direction;
 }
