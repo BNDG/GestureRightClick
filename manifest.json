@@ -5,7 +5,8 @@
     "permissions": [
         "history",
         "tabs",
-        "sessions"
+        "sessions",
+        "storage"
     ],
     "background": {
         "service_worker": "background.js",
@@ -25,5 +26,6 @@
         "16": "icons/icon.png",
         "48": "icons/icon.png",
         "128": "icons/icon.png"
-    }
+    },
+    "options_page": "options.html"
 }

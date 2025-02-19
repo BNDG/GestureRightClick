@@ -1,6 +1,5 @@
-const isDebug = true; // 或者从外部获取（如通过 query 参数）
 function log(message) {
-    if (isDebug) {
+    if (true) {
         console.log(message);
     }
 }
@@ -15,24 +14,48 @@ canvas.style.position = 'fixed'; // 固定定位
 canvas.style.top = "0";
 canvas.style.left = "0";
 canvas.style.pointerEvents = "none"; // 不阻塞其他事件
-canvas.width = window.innerWidth; // 设置为窗口的宽度
-canvas.height = window.innerHeight; // 设置为窗口的高度
 canvas.style.zIndex = "9999";
+// 获取设备像素比
+const dpr = window.devicePixelRatio || 1;
+var trackColor = "#006dce";
+var brushWidth = 3;
+// 1. 加载存储的设置（颜色、画笔宽度）
+chrome.storage.sync.get(['trackColor', 'brushWidth'], function (data) {
+    if (data.trackColor) {
+        trackColor = data.trackColor; // 你可以把 trackColor 用来设置轨迹颜色
+    }
+    if (data.brushWidth) {
+        brushWidth = data.brushWidth; // 你可以把 brushWidth 用来设置画笔宽度
+    }
+});
+function updateCanvasSize() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    // 设置实际宽度和高度（物理像素）
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+
+    // 设置样式宽度和高度（逻辑像素）
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+
+    // 缩放上下文以匹配新的尺寸
+    ctx.scale(dpr, dpr);
+}
+
 document.body.appendChild(canvas);
 
 const ctx = canvas.getContext("2d");
 
-function updateCanvasSize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-
 updateCanvasSize();
-window.addEventListener("resize", updateCanvasSize);
+
+// 监听窗口大小变化并更新 Canvas 尺寸
+window.addEventListener('resize', updateCanvasSize);
 
 // 记录右键点击的时间
 let lastClickTime = 0;
-const doubleClickThreshold = 200; // 双击的时间间隔（毫秒）
+const doubleClickThreshold = 350; // 双击的时间间隔（毫秒）
 let isDoubleClick = false; // 用来标记是否为双击
 document.addEventListener("contextmenu", (event) => {
     // 获取当前时间戳
@@ -55,7 +78,7 @@ document.addEventListener("contextmenu", (event) => {
     lastClickTime = currentTime;
 });
 // 右键按下时开始记录轨迹
-document.addEventListener("mousedown", (event) => {
+document.addEventListener("pointerdown", (event) => {
     if (event.button === 2 && !isDoubleClick) { // 只有不是双击的右键按下才记录轨迹
         isRightClicking = true;
         mouseTrail = []; // 清空轨迹
@@ -64,7 +87,7 @@ document.addEventListener("mousedown", (event) => {
 });
 
 // 右键释放时结束手势轨迹
-document.addEventListener("mouseup", (event) => {
+document.addEventListener("pointerup", (event) => {
     if (isDoubleClick) {
         return;
     }
@@ -90,7 +113,7 @@ document.addEventListener("mouseup", (event) => {
 });
 
 // 记录鼠标移动轨迹并绘制
-document.addEventListener("mousemove", (event) => {
+document.addEventListener("pointermove", (event) => {
     if (isDoubleClick) {
         return;
     }
@@ -98,12 +121,12 @@ document.addEventListener("mousemove", (event) => {
         // 使用 clientX 和 clientY 获取相对于视口的坐标
         const x = event.clientX;
         const y = event.clientY;
-        mouseTrail.push({x: x, y: y});
+        mouseTrail.push({ x: x, y: y });
         if (prePoint === null) {
-            prePoint = {x: x, y: y};
+            prePoint = { x: x, y: y };
         }
         if (mouseTrail.length > 1) {
-            let currentPoint = {x: x, y: y};
+            let currentPoint = { x: x, y: y };
             let distance = Math.sqrt(Math.pow(currentPoint.x - prePoint.x, 2) + Math.pow(currentPoint.y - prePoint.y, 2));
             if (distance > 10) {
                 prePoint = currentPoint;
@@ -128,21 +151,23 @@ document.addEventListener("mousemove", (event) => {
         }
 
         // 绘制轨迹
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除之前的轨迹
+        ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr); // 清除之前的轨迹
         ctx.beginPath();
         ctx.moveTo(mouseTrail[0].x, mouseTrail[0].y);
         for (let i = 1; i < mouseTrail.length; i++) {
             ctx.lineTo(mouseTrail[i].x, mouseTrail[i].y);
         }
-        ctx.strokeStyle = "rgba(0, 0, 255, 0.7)";
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = trackColor;
+        ctx.lineWidth = brushWidth;
         ctx.stroke();
+
         // 绘制半透明方框和文字提示
-        if (currentTextTips !== null && currentTextTips !== "")  {
+        if (currentTextTips !== null && currentTextTips !== "") {
             drawTextBoxAndMessage();
         }
     }
 });
+
 // 添加函数来绘制提示框和文字
 function drawTextBoxAndMessage() {
     // 计算屏幕中心坐标
@@ -162,7 +187,7 @@ function drawTextBoxAndMessage() {
     ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
 
     // 设置文字样式
-    ctx.font = "20px Arial";  // 字体和大小
+    ctx.font = `${20 * dpr}px Arial`;  // 根据DPR调整字体大小
     ctx.fillStyle = "white";  // 文字颜色
     ctx.textAlign = "center";  // 水平居中对齐
     ctx.textBaseline = "middle";  // 垂直居中对齐
@@ -198,17 +223,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === "scrollOnePageDown") {
         log("执行向下滚动操作")
         scrollOnePageDown(); // 执行向下滚动操作
-        sendResponse({status: "success"});
+        sendResponse({ status: "success" });
     } else if (msg.type === "scrollOnePageUp") {
         log("执行向上滚动操作")
         scrollOnePageUp(); // 执行向上滚动操作
-        sendResponse({status: "success"});
+        sendResponse({ status: "success" });
     } else if (msg.type === "scrollToBottom") {
         scrollToBottom();
-        sendResponse({status: "success"});
+        sendResponse({ status: "success" });
     } else if (msg.type === "scrollToTop") {
         scrollToTop();
-        sendResponse({status: "success"});
+        sendResponse({ status: "success" });
     } else if (msg.type === "goForward") {
         if (window.history.length > 1) {
             window.history.forward();

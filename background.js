@@ -1,4 +1,8 @@
-import { log } from './logUtils.js';
+function log(...data) {
+    if (true) {
+        console.log(data);
+    }
+}
 class Direction {
     static Up = 0;
     static Right = 1;
@@ -34,7 +38,7 @@ function restoreLastClosedTab() {
             // 恢复标签页
             chrome.sessions.restore(nextTab.sessionId);
         } else {
-            console.log("No more closed tabs to restore.");
+            log("No more closed tabs to restore.");
         }
     });
 }

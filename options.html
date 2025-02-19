@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单鼠标手势 - 设置</title>
+    <style>
+        /* 整体页面样式 */
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom right, #f4f4f9, #e6e6ef);
+            padding: 20px;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* 容器样式 */
+        .container {
+            max-width: 90%; /* 增加容器宽度 */
+            width: 750px; /* 设定一个固定的宽度以适应大多数屏幕 */
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 标题样式 */
+        h2 {
+            color: #005bb5;
+            border-bottom: 3px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        /* 标签样式 */
+        label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: bold;
+        }
+
+        /* 颜色和范围输入框样式 */
+        input[type="color"],
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 25px;
+        }
+
+        /* 按钮样式 */
+        button {
+            background-color: #007bff;
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 20px 0;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* 手势说明容器样式 */
+        .gesture-instructions {
+            margin-top: 30px;
+        }
+
+        /* 手势说明列表样式 */
+        .gesture-instructions ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .gesture-instructions li {
+            background: #f9f9f9;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            word-break: break-all; /* 支持长文本换行 */
+        }
+
+        .gesture-instructions li:hover {
+            background-color: #e9e9e9;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 颜色和画笔设置 -->
+        <div>
+            <label for="color-picker">轨迹颜色：</label>
+            <input type="color" id="color-picker" value="#006dce">
+        </div>
+        <div>
+            <label for="brush-width">画笔宽度：</label>
+            <input type="range" id="brush-width" min="1" max="6" value="3">
+        </div>
+        <button id="save-button">保存设置</button>
+
+        <div class="gesture-instructions">
+            <h2>手势操作</h2>
+            <ul>
+                <li><span>向左</span><span>后退</span></li>
+                <li><span>向右</span><span>前进</span></li>
+                <li><span>向上</span><span>向上滚动</span></li>
+                <li><span>向下</span><span>向下滚动</span></li>
+                <li><span>向右然后向下</span><span>刷新页面</span></li>
+                <li><span>向下然后向右</span><span>关闭当前标签页</span></li>
+                <li><span>向下然后向上</span><span>滚动到页面顶部</span></li>
+                <li><span>向上然后向下</span><span>滚动到页面底部</span></li>
+                <li><span>向左然后向上</span><span>重新打开上一个关闭的标签页</span></li>
+            </ul>
+        </div>
+    </div>
+    <script src="options.js"></script>
+    <script src="content.js"></script>
+    <script src="background.js"></script>
+    <script src="logUtils.js"></script>
+</body>
+
+</html>
