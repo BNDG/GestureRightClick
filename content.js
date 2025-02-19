@@ -187,7 +187,7 @@ function drawTextBoxAndMessage() {
     ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
 
     // 设置文字样式
-    ctx.font = `${20 * dpr}px Arial`;  // 根据DPR调整字体大小
+    ctx.font = `${20 * dpr * 0.7}px Arial`;  // 根据DPR调整字体大小
     ctx.fillStyle = "white";  // 文字颜色
     ctx.textAlign = "center";  // 水平居中对齐
     ctx.textBaseline = "middle";  // 垂直居中对齐
