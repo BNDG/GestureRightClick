@@ -25,15 +25,8 @@ canvas.style.height = canvas.height + 'px';
 canvas.width = canvas.width * dpr;
 canvas.height = canvas.height * dpr;
 ctx.scale(dpr, dpr);
-window.addEventListener('load', function () {
-    // 当整个页面加载完成后执行
-    if (document.body) {
-        document.body.appendChild(canvas);
-    } else {
-        document.addEventListener('DOMContentLoaded', function () {
-            document.body.appendChild(canvas);
-        });
-    }
+document.addEventListener('DOMContentLoaded', function () {
+    document.body.appendChild(canvas);
 });
 // const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
 // // 计算期望的字体大小（例如：1.5rem）
@@ -79,8 +72,8 @@ window.addEventListener("contextmenu", (event) => {
     if (currentTime - lastClickTime < doubleClickThreshold) {
         // 如果是双击，允许默认的右键菜单弹出
         log("允许默认的右键菜单弹出");
-        isDoubleClick = true; // 标记为双击
-        return;  // 不阻止右键菜单弹出
+        isDoubleClick = true;
+        return;
     } else {
         // 如果是普通右键点击，阻止右键菜单弹出
         log("普通右键点击，阻止右键菜单弹出");
@@ -90,7 +83,7 @@ window.addEventListener("contextmenu", (event) => {
 
     // 更新最后一次点击的时间
     lastClickTime = currentTime;
-});
+}, false);
 // 右键按下时开始记录轨迹
 document.addEventListener("pointerdown", (event) => {
     if (event.button === 2 && !isDoubleClick) {
@@ -99,7 +92,7 @@ document.addEventListener("pointerdown", (event) => {
         mouseTrail = []; // 清空轨迹
         currentTextTips = "";
     }
-});
+}, false);
 
 // 右键释放时结束手势轨迹
 document.addEventListener("pointerup", (event) => {
@@ -125,7 +118,7 @@ document.addEventListener("pointerup", (event) => {
         isDoubleClick = false;
         ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除画布上的内容
     }
-});
+}, false);
 
 // 记录鼠标移动轨迹并绘制
 document.addEventListener("pointermove", (event) => {
@@ -164,8 +157,11 @@ document.addEventListener("pointermove", (event) => {
         if (mouseTrail.length > maxTrailLength) {
             mouseTrail.shift();
         }
-        if (document.body == null || !document.body.contains(canvas)) {
-            log("canvas不存在");
+        if (document.body == null) {
+            log("body == null");
+            return;
+        } else if (!document.body.contains(canvas)) {
+            document.body.appendChild(canvas);
             return;
         }
         // 绘制轨迹
@@ -184,7 +180,7 @@ document.addEventListener("pointermove", (event) => {
             drawTextBoxAndMessage();
         }
     }
-});
+}, false);
 
 // 添加函数来绘制提示框和文字
 function drawTextBoxAndMessage() {
