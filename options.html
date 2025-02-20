@@ -17,6 +17,7 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            font-size: 15px; /* 设置全局字体大小为 15px */
         }
 
         /* 容器样式 */
@@ -61,7 +62,7 @@
             text-align: center;
             text-decoration: none;
             display: inline-block;
-            font-size: 16px;
+            font-size: 1em; /* 使用相对单位确保按钮文本大小与全局一致 */
             margin: 20px 0;
             cursor: pointer;
             border-radius: 8px;
@@ -109,7 +110,7 @@
         </div>
         <div>
             <label for="brush-width">画笔宽度：</label>
-            <input type="range" id="brush-width" min="1" max="6" value="3">
+            <input type="range" id="brush-width" min="2" max="6" value="3">
         </div>
         <button id="save-button">保存设置</button>
 
@@ -129,6 +130,7 @@
         </div>
     </div>
     <script src="options.js"></script>
+    <script src="content.js"></script>
 </body>
 
 </html>

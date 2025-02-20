@@ -15,10 +15,34 @@ canvas.style.top = "0";
 canvas.style.left = "0";
 canvas.style.pointerEvents = "none"; // 不阻塞其他事件
 canvas.style.zIndex = "9999";
+const ctx = canvas.getContext("2d");
 // 获取设备像素比
 const dpr = window.devicePixelRatio || 1;
 var trackColor = "#006dce";
 var brushWidth = 3;
+canvas.style.width = canvas.width + 'px';
+canvas.style.height = canvas.height + 'px';
+canvas.width = canvas.width * dpr;
+canvas.height = canvas.height * dpr;
+ctx.scale(dpr, dpr);
+window.addEventListener('load', function () {
+    // 当整个页面加载完成后执行
+    if (document.body) {
+        document.body.appendChild(canvas);
+    } else {
+        document.addEventListener('DOMContentLoaded', function () {
+            document.body.appendChild(canvas);
+        });
+    }
+});
+// const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+// // 计算期望的字体大小（例如：1.5rem）
+// const desiredFontSizeInRem = 1;
+// const fontSizeForCanvas = rootFontSize * desiredFontSizeInRem;
+// 记录右键点击的时间
+let lastClickTime = 0;
+const doubleClickThreshold = 350; // 双击的时间间隔（毫秒）
+let isDoubleClick = false; // 用来标记是否为双击
 // 1. 加载存储的设置（颜色、画笔宽度）
 chrome.storage.sync.get(['trackColor', 'brushWidth'], function (data) {
     if (data.trackColor) {
@@ -44,20 +68,10 @@ function updateCanvasSize() {
     ctx.scale(dpr, dpr);
 }
 
-document.body.appendChild(canvas);
-
-const ctx = canvas.getContext("2d");
-
 updateCanvasSize();
-
 // 监听窗口大小变化并更新 Canvas 尺寸
 window.addEventListener('resize', updateCanvasSize);
-
-// 记录右键点击的时间
-let lastClickTime = 0;
-const doubleClickThreshold = 350; // 双击的时间间隔（毫秒）
-let isDoubleClick = false; // 用来标记是否为双击
-document.addEventListener("contextmenu", (event) => {
+window.addEventListener("contextmenu", (event) => {
     // 获取当前时间戳
     const currentTime = new Date().getTime();
 
@@ -79,7 +93,8 @@ document.addEventListener("contextmenu", (event) => {
 });
 // 右键按下时开始记录轨迹
 document.addEventListener("pointerdown", (event) => {
-    if (event.button === 2 && !isDoubleClick) { // 只有不是双击的右键按下才记录轨迹
+    if (event.button === 2 && !isDoubleClick) {
+        log("右键按下时开始记录轨迹")
         isRightClicking = true;
         mouseTrail = []; // 清空轨迹
         currentTextTips = "";
@@ -95,14 +110,14 @@ document.addEventListener("pointerup", (event) => {
         isRightClicking = false;
         if (mouseTrail.length > 0) {
             // 发送手势数据给后台
-            log("发送手势数据给后台");
+            log("pointerup发送手势数据给后台");
             chrome.runtime.sendMessage({
                 type: "mouseAction"
             }, (response) => {
                 if (chrome.runtime.lastError) {
-                    log("发送消息失败: ", chrome.runtime.lastError);
+                    log("pointerup发送消息失败: ", chrome.runtime.lastError);
                 } else {
-                    log("消息发送成功:", response);
+                    log("pointerup消息发送成功:", response);
                 }
             });
         }
@@ -135,9 +150,9 @@ document.addEventListener("pointermove", (event) => {
                     point: currentPoint
                 }, (response) => {
                     if (chrome.runtime.lastError) {
-                        log("发送消息失败: ", chrome.runtime.lastError);
+                        log("move发送消息失败: ", chrome.runtime.lastError);
                     } else {
-                        log("消息发送成功:", response);
+                        log("move消息发送成功:", response);
                     }
                 });
             } else {
@@ -149,7 +164,10 @@ document.addEventListener("pointermove", (event) => {
         if (mouseTrail.length > maxTrailLength) {
             mouseTrail.shift();
         }
-
+        if (document.body == null || !document.body.contains(canvas)) {
+            log("canvas不存在");
+            return;
+        }
         // 绘制轨迹
         ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr); // 清除之前的轨迹
         ctx.beginPath();
@@ -182,12 +200,12 @@ function drawTextBoxAndMessage() {
     const boxX = centerX - boxWidth / 2;
     const boxY = centerY - boxHeight / 2;
 
+    // 设置Canvas的字体大小
+    ctx.font = `20px Arial`;
     // 绘制半透明矩形背景
     ctx.fillStyle = "rgba(0, 0, 0, 0.7)";  // 半透明黑色
     ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
 
-    // 设置文字样式
-    ctx.font = `${20 * dpr * 0.7}px Arial`;  // 根据DPR调整字体大小
     ctx.fillStyle = "white";  // 文字颜色
     ctx.textAlign = "center";  // 水平居中对齐
     ctx.textBaseline = "middle";  // 垂直居中对齐
@@ -220,6 +238,7 @@ function scrollOnePageUp() {
 
 // 监听来自背景脚本的消息
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    log("收到来自background的消息：", msg);
     if (msg.type === "scrollOnePageDown") {
         log("执行向下滚动操作")
         scrollOnePageDown(); // 执行向下滚动操作

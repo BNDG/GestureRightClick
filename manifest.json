@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Simple Mouse Gesture",
+    "name": "简单右键手势",
     "version": "1.0",
     "permissions": [
         "history",
@@ -19,7 +19,8 @@
             ],
             "js": [
                 "content.js"
-            ]
+            ],
+            "run_at": "document_start"
         }
     ],
     "icons": {
