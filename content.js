@@ -10,10 +10,11 @@ let prePoint = null;
 let currentTextTips = null;
 // 用于绘制轨迹的 canvas 元素
 const canvas = document.createElement("canvas");
+canvas.className = "gesture-bndg-canvas";
 canvas.style.position = 'fixed'; // 固定定位
 canvas.style.top = "0";
 canvas.style.left = "0";
-canvas.style.pointerEvents = "none"; // 不阻塞其他事件
+canvas.style.pointerEvents = "auto"; // 不阻塞其他事件
 canvas.style.zIndex = "9999";
 const ctx = canvas.getContext("2d");
 // 获取设备像素比
@@ -25,9 +26,6 @@ canvas.style.height = canvas.height + 'px';
 canvas.width = canvas.width * dpr;
 canvas.height = canvas.height * dpr;
 ctx.scale(dpr, dpr);
-document.addEventListener('DOMContentLoaded', function () {
-    document.body.appendChild(canvas);
-});
 // const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
 // // 计算期望的字体大小（例如：1.5rem）
 // const desiredFontSizeInRem = 1;
@@ -117,6 +115,7 @@ document.addEventListener("pointerup", (event) => {
         // 重置双击标记
         isDoubleClick = false;
         ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除画布上的内容
+        removeGestureBndgCanvas();
     }
 }, false);
 
@@ -182,6 +181,12 @@ document.addEventListener("pointermove", (event) => {
     }
 }, false);
 
+function removeGestureBndgCanvas() {
+    const canvas = document.querySelector(".gesture-bndg-canvas");
+    if (canvas) {
+        document.body.removeChild(canvas);
+    }
+}
 // 添加函数来绘制提示框和文字
 function drawTextBoxAndMessage() {
     // 计算屏幕中心坐标
