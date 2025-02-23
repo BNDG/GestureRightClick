@@ -63,28 +63,34 @@ updateCanvasSize();
 // 监听窗口大小变化并更新 Canvas 尺寸
 window.addEventListener('resize', updateCanvasSize);
 window.addEventListener("contextmenu", (event) => {
-    // 获取当前时间戳
-    const currentTime = new Date().getTime();
-
-    // 判断两次点击的间隔是否小于双击的阈值
-    if (currentTime - lastClickTime < doubleClickThreshold) {
-        // 如果是双击，允许默认的右键菜单弹出
-        log("允许默认的右键菜单弹出");
-        isDoubleClick = true;
-        return;
-    } else {
-        // 如果是普通右键点击，阻止右键菜单弹出
-        log("普通右键点击，阻止右键菜单弹出");
-        isDoubleClick = false;
-        event.preventDefault();
+    const canvasEl = document.querySelector(".gesture-bndg-canvas")
+    if(canvasEl) {
+        if(canvasEl.style.pointerEvents !== "none") {
+            event.preventDefault();
+        }
     }
+    // // 获取当前时间戳
+    // const currentTime = new Date().getTime();
 
-    // 更新最后一次点击的时间
-    lastClickTime = currentTime;
+    // // 判断两次点击的间隔是否小于双击的阈值
+    // if (currentTime - lastClickTime < doubleClickThreshold) {
+    //     // 如果是双击，允许默认的右键菜单弹出
+    //     log("允许默认的右键菜单弹出");
+    //     isDoubleClick = true;
+    //     return;
+    // } else {
+    //     // 如果是普通右键点击，阻止右键菜单弹出
+    //     log("普通右键点击，阻止右键菜单弹出");
+    //     isDoubleClick = false;
+    //     event.preventDefault();
+    // }
+
+    // // 更新最后一次点击的时间
+    // lastClickTime = currentTime;
 }, false);
 // 右键按下时开始记录轨迹
 document.addEventListener("pointerdown", (event) => {
-    if (event.button === 2 && !isDoubleClick) {
+    if (event.button === 2) {
         log("右键按下时开始记录轨迹")
         isRightClicking = true;
         mouseTrail = []; // 清空轨迹
@@ -94,9 +100,6 @@ document.addEventListener("pointerdown", (event) => {
 
 // 右键释放时结束手势轨迹
 document.addEventListener("pointerup", (event) => {
-    if (isDoubleClick) {
-        return;
-    }
     if (event.button === 2) { // 右键
         isRightClicking = false;
         if (mouseTrail.length > 0) {
@@ -115,15 +118,14 @@ document.addEventListener("pointerup", (event) => {
         // 重置双击标记
         isDoubleClick = false;
         ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除画布上的内容
-        removeGestureBndgCanvas();
+        setTimeout(() => {
+            removeGestureBndgCanvas();
+        }, 70)
     }
 }, false);
 
 // 记录鼠标移动轨迹并绘制
 document.addEventListener("pointermove", (event) => {
-    if (isDoubleClick) {
-        return;
-    }
     if (isRightClicking) {
         // 使用 clientX 和 clientY 获取相对于视口的坐标
         const x = event.clientX;
@@ -162,6 +164,8 @@ document.addEventListener("pointermove", (event) => {
         } else if (!document.body.contains(canvas)) {
             document.body.appendChild(canvas);
             return;
+        } else {
+            canvas.style.pointerEvents = "auto"; // 不阻塞其他事件
         }
         // 绘制轨迹
         ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr); // 清除之前的轨迹
@@ -184,7 +188,8 @@ document.addEventListener("pointermove", (event) => {
 function removeGestureBndgCanvas() {
     const canvas = document.querySelector(".gesture-bndg-canvas");
     if (canvas) {
-        document.body.removeChild(canvas);
+        // document.body.removeChild(canvas);
+        canvas.style.pointerEvents = "none";
     }
 }
 // 添加函数来绘制提示框和文字
