@@ -1,5 +1,5 @@
 function log(...data) {
-    if (true) {
+    if (false) {
         console.log(data);
     }
 }

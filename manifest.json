@@ -2,6 +2,7 @@
     "manifest_version": 3,
     "name": "简单右键手势",
     "version": "1.0",
+    "description": "一个简单的右键手势扩展，帮助用户通过右键手势快速执行常用操作。",
     "permissions": [
         "history",
         "tabs",
