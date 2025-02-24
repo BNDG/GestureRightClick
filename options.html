@@ -53,6 +53,37 @@
             margin-bottom: 25px;
         }
 
+         /* 自定义复选框样式 */
+         input[type="checkbox"] {
+            appearance: none; /* 移除默认样式 */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+            vertical-align: middle;
+            margin-left: 5px;
+        }
+
+        input[type="checkbox"]:checked {
+            background-color: #007bff; /* 选中时的背景颜色 */
+            border-color: #007bff; /* 选中时的边框颜色 */
+        }
+
+        input[type="checkbox"]:checked::after {
+            content: '\2713'; /* 选中时显示的对勾符号 */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+        }
+
         /* 按钮样式 */
         button {
             background-color: #007bff;
@@ -112,6 +143,12 @@
             <label for="brush-width">画笔宽度：</label>
             <input type="range" id="brush-width" min="2" max="6" value="3">
         </div>
+        <div>
+            <label for="show-trace-text">显示轨迹文字提示：
+                <input type="checkbox" id="show-trace-text">
+            </label>
+        </div>
+        
         <button id="save-button">保存设置</button>
 
         <div class="gesture-instructions">

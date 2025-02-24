@@ -34,14 +34,17 @@ ctx.scale(dpr, dpr);
 let lastClickTime = 0;
 const doubleClickThreshold = 350; // 双击的时间间隔（毫秒）
 let isDoubleClick = false; // 用来标记是否为双击
+const isWin = navigator.platform.toLowerCase().includes('win');
+let isShowTips = true;
 // 1. 加载存储的设置（颜色、画笔宽度）
-chrome.storage.sync.get(['trackColor', 'brushWidth'], function (data) {
+chrome.storage.sync.get(['trackColor', 'brushWidth', 'isShowTips'], function (data) {
     if (data.trackColor) {
         trackColor = data.trackColor; // 你可以把 trackColor 用来设置轨迹颜色
     }
     if (data.brushWidth) {
         brushWidth = data.brushWidth; // 你可以把 brushWidth 用来设置画笔宽度
     }
+    isShowTips = data.isShowTips === undefined ? true : data.isShowTips;
 });
 function updateCanvasSize() {
     const width = window.innerWidth;
@@ -63,30 +66,32 @@ updateCanvasSize();
 // 监听窗口大小变化并更新 Canvas 尺寸
 window.addEventListener('resize', updateCanvasSize);
 window.addEventListener("contextmenu", (event) => {
-    const canvasEl = document.querySelector(".gesture-bndg-canvas")
-    if(canvasEl) {
-        if(canvasEl.style.pointerEvents !== "none") {
+    if (isWin) {
+        const canvasEl = document.querySelector(".gesture-bndg-canvas")
+        if (canvasEl) {
+            if (canvasEl.style.pointerEvents !== "none") {
+                event.preventDefault();
+            }
+        }
+    } else {
+        // 获取当前时间戳
+        const currentTime = new Date().getTime();
+        // 判断两次点击的间隔是否小于双击的阈值
+        if (currentTime - lastClickTime < doubleClickThreshold) {
+            // 如果是双击，允许默认的右键菜单弹出
+            log("允许默认的右键菜单弹出");
+            isDoubleClick = true;
+            return;
+        } else {
+            // 如果是普通右键点击，阻止右键菜单弹出
+            log("普通右键点击，阻止右键菜单弹出");
+            isDoubleClick = false;
             event.preventDefault();
         }
+
+        // 更新最后一次点击的时间
+        lastClickTime = currentTime;
     }
-    // // 获取当前时间戳
-    // const currentTime = new Date().getTime();
-
-    // // 判断两次点击的间隔是否小于双击的阈值
-    // if (currentTime - lastClickTime < doubleClickThreshold) {
-    //     // 如果是双击，允许默认的右键菜单弹出
-    //     log("允许默认的右键菜单弹出");
-    //     isDoubleClick = true;
-    //     return;
-    // } else {
-    //     // 如果是普通右键点击，阻止右键菜单弹出
-    //     log("普通右键点击，阻止右键菜单弹出");
-    //     isDoubleClick = false;
-    //     event.preventDefault();
-    // }
-
-    // // 更新最后一次点击的时间
-    // lastClickTime = currentTime;
 }, false);
 // 右键按下时开始记录轨迹
 document.addEventListener("pointerdown", (event) => {
@@ -100,7 +105,7 @@ document.addEventListener("pointerdown", (event) => {
 
 // 右键释放时结束手势轨迹
 document.addEventListener("pointerup", (event) => {
-    if (event.button === 2) { // 右键
+    if (event.button === 2 && !isDoubleClick) { // 右键
         isRightClicking = false;
         if (mouseTrail.length > 0) {
             // 发送手势数据给后台
@@ -126,7 +131,7 @@ document.addEventListener("pointerup", (event) => {
 
 // 记录鼠标移动轨迹并绘制
 document.addEventListener("pointermove", (event) => {
-    if (isRightClicking) {
+    if (isRightClicking && !isDoubleClick) {
         // 使用 clientX 和 clientY 获取相对于视口的坐标
         const x = event.clientX;
         const y = event.clientY;
@@ -179,7 +184,7 @@ document.addEventListener("pointermove", (event) => {
         ctx.stroke();
 
         // 绘制半透明方框和文字提示
-        if (currentTextTips !== null && currentTextTips !== "") {
+        if (isShowTips && currentTextTips !== null && currentTextTips !== "") {
             drawTextBoxAndMessage();
         }
     }
