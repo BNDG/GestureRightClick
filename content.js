@@ -1,5 +1,5 @@
-function log(message) {
-    if (false) {
+function log(...message) {
+    if (true) {
         console.log(message);
     }
 }
@@ -14,7 +14,7 @@ canvas.className = "gesture-bndg-canvas";
 canvas.style.position = 'fixed'; // 固定定位
 canvas.style.top = "0";
 canvas.style.left = "0";
-canvas.style.pointerEvents = "auto"; // 不阻塞其他事件
+canvas.style.pointerEvents = "none"; // 不阻塞其他事件
 canvas.style.zIndex = "9999";
 const ctx = canvas.getContext("2d");
 // 获取设备像素比
@@ -65,6 +65,12 @@ function updateCanvasSize() {
 updateCanvasSize();
 // 监听窗口大小变化并更新 Canvas 尺寸
 window.addEventListener('resize', updateCanvasSize);
+window.addEventListener('load', function () {
+    if (!document.body.contains(canvas)) {
+        log("canvas不存在，创建canvas")
+        document.body.appendChild(canvas);
+    }
+});
 window.addEventListener("contextmenu", (event) => {
     if (isWin) {
         const canvasEl = document.querySelector(".gesture-bndg-canvas")
@@ -168,10 +174,8 @@ document.addEventListener("pointermove", (event) => {
             return;
         } else if (!document.body.contains(canvas)) {
             document.body.appendChild(canvas);
-            return;
-        } else {
-            canvas.style.pointerEvents = "auto"; // 不阻塞其他事件
         }
+        canvas.style.pointerEvents = "auto"; // 阻塞其他事件
         // 绘制轨迹
         ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr); // 清除之前的轨迹
         ctx.beginPath();
@@ -185,7 +189,10 @@ document.addEventListener("pointermove", (event) => {
 
         // 绘制半透明方框和文字提示
         if (isShowTips && currentTextTips !== null && currentTextTips !== "") {
+            log("绘制半透明方框和文字提示");
             drawTextBoxAndMessage();
+        } else {
+            log("不绘制半透明方框和文字提示 因为isShowTips " + isShowTips + " || " + currentTextTips);
         }
     }
 }, false);
@@ -249,7 +256,7 @@ function scrollOnePageUp() {
 
 // 监听来自背景脚本的消息
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    log("收到来自background的消息：", msg);
+    log("收到来自background的消息：", msg.type);
     if (msg.type === "scrollOnePageDown") {
         log("执行向下滚动操作")
         scrollOnePageDown(); // 执行向下滚动操作
