@@ -70,10 +70,48 @@ window.addEventListener('load', function () {
         log("canvas不存在，创建canvas")
         document.body.appendChild(canvas);
     }
+    // 获取所有的 <iframe> 元素
+    const iframes = document.querySelectorAll('iframe');
+    iframes.forEach((iframe) => {
+        const setupEventListeners = () => {
+            const iframeWindow = iframe.contentWindow;
+            // 在 iframe 内部监听事件并调用相关方法
+            iframeWindow.addEventListener('contextmenu', handlerContextmenu, false);
+            iframeWindow.addEventListener('pointerdown', handlerPointerdown, false);
+            iframeWindow.addEventListener('pointerup', handlerPointerup, false);
+            iframeWindow.addEventListener('pointermove', (event) => {
+                if (isRightClicking && !isDoubleClick) {
+                    const x = event.clientX;
+                    const y = event.clientY;
+                    log("iframe client", x, y);
+                    // 获取iframe相对于主文档的偏移量
+                    const iframeRect = event.target.ownerDocument.defaultView.frameElement.getBoundingClientRect();
+
+                    // 调整坐标为相对于主文档的坐标
+                    const docX = x + iframeRect.left;
+                    const docY = y + iframeRect.top;
+                    const adjustedEvent = {
+                        type: 'pointermove',
+                        clientX: docX,
+                        clientY: docY,
+                        ...event
+                    };
+                    handlerPointermove(adjustedEvent);
+                }
+            }, false);
+        };
+
+        // 第一次加载时设置事件监听器
+        setupEventListeners();
+
+        // 监听 iframe 的 load 事件，每次加载完成时重新设置事件监听器
+        iframe.addEventListener('load', setupEventListeners);
+    });
 });
-window.addEventListener("contextmenu", (event) => {
+
+function handlerContextmenu(event) {
     if (isWin) {
-        const canvasEl = document.querySelector(".gesture-bndg-canvas")
+        const canvasEl = document.querySelector(".gesture-bndg-canvas");
         if (canvasEl) {
             if (canvasEl.style.pointerEvents !== "none") {
                 event.preventDefault();
@@ -98,19 +136,16 @@ window.addEventListener("contextmenu", (event) => {
         // 更新最后一次点击的时间
         lastClickTime = currentTime;
     }
-}, false);
-// 右键按下时开始记录轨迹
-document.addEventListener("pointerdown", (event) => {
+}
+function handlerPointerdown(event) {
     if (event.button === 2) {
-        log("右键按下时开始记录轨迹")
+        log("右键按下时开始记录轨迹");
         isRightClicking = true;
         mouseTrail = []; // 清空轨迹
         currentTextTips = "";
     }
-}, false);
-
-// 右键释放时结束手势轨迹
-document.addEventListener("pointerup", (event) => {
+}
+function handlerPointerup(event) {
     if (event.button === 2 && !isDoubleClick) { // 右键
         isRightClicking = false;
         if (mouseTrail.length > 0) {
@@ -133,10 +168,8 @@ document.addEventListener("pointerup", (event) => {
             removeGestureBndgCanvas();
         }, 70)
     }
-}, false);
-
-// 记录鼠标移动轨迹并绘制
-document.addEventListener("pointermove", (event) => {
+}
+function handlerPointermove(event) {
     if (isRightClicking && !isDoubleClick) {
         // 使用 clientX 和 clientY 获取相对于视口的坐标
         const x = event.clientX;
@@ -195,7 +228,16 @@ document.addEventListener("pointermove", (event) => {
             log("不绘制半透明方框和文字提示 因为isShowTips " + isShowTips + " || " + currentTextTips);
         }
     }
-}, false);
+}
+window.addEventListener("contextmenu", handlerContextmenu, false);
+// 右键按下时开始记录轨迹
+document.addEventListener("pointerdown", handlerPointerdown, false);
+
+// 右键释放时结束手势轨迹
+document.addEventListener("pointerup", handlerPointerup, false);
+
+// 记录鼠标移动轨迹并绘制
+document.addEventListener("pointermove", handlerPointermove, false);
 
 function removeGestureBndgCanvas() {
     const canvas = document.querySelector(".gesture-bndg-canvas");
