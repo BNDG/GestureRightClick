@@ -69,7 +69,11 @@ class GestureActionManager {
                 Object.entries(result.customGestures).forEach(([gestureKey, gestureData]) => {
                     // 将字符串形式的手势转换回数组
                     const gesture = JSON.parse(gestureKey);
-                    this.setGestureAction(gesture, gestureData.name, this.getActionFunction(gestureData.actionType));
+                    // 这里不再调用 setGestureAction
+                    this.gestureMap.set(gestureKey, {
+                        name: gestureData.name,
+                        action: this.getActionFunction(gestureData.actionType)
+                    });
                 });
             }
         } catch (error) {
@@ -90,7 +94,7 @@ class GestureActionManager {
             [JSON.stringify(rightDownDirections)]: { name: "刷新页面", actionType: "refreshPage" }
         };
 
-        // 直接将默认手势添加到 gestureMap，而不是调用 setGestureAction
+        // 直接将默认手势添加到 gestureMap
         Object.entries(defaultGestures).forEach(([gestureKey, gestureData]) => {
             this.gestureMap.set(gestureKey, {
                 name: gestureData.name,
@@ -159,7 +163,6 @@ class GestureActionManager {
             action: actionFunction
         });
 
-        保存到存储
         try {
             const result = await chrome.storage.sync.get('customGestures');
             console.log(result)

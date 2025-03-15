@@ -73,40 +73,86 @@ window.addEventListener('load', function () {
     // 获取所有的 <iframe> 元素
     const iframes = document.querySelectorAll('iframe');
     iframes.forEach((iframe) => {
-        const setupEventListeners = () => {
-            const iframeWindow = iframe.contentWindow;
-            // 在 iframe 内部监听事件并调用相关方法
-            iframeWindow.addEventListener('contextmenu', handlerContextmenu, false);
-            iframeWindow.addEventListener('pointerdown', handlerPointerdown, false);
-            iframeWindow.addEventListener('pointerup', handlerPointerup, false);
-            iframeWindow.addEventListener('pointermove', (event) => {
-                if (isRightClicking && !isDoubleClick) {
-                    const x = event.clientX;
-                    const y = event.clientY;
-                    log("iframe client", x, y);
-                    // 获取iframe相对于主文档的偏移量
-                    const iframeRect = event.target.ownerDocument.defaultView.frameElement.getBoundingClientRect();
-
-                    // 调整坐标为相对于主文档的坐标
-                    const docX = x + iframeRect.left;
-                    const docY = y + iframeRect.top;
-                    const adjustedEvent = {
-                        type: 'pointermove',
-                        clientX: docX,
-                        clientY: docY,
-                        ...event
-                    };
-                    handlerPointermove(adjustedEvent);
-                }
-            }, false);
-        };
-
-        // 第一次加载时设置事件监听器
-        setupEventListeners();
-
-        // 监听 iframe 的 load 事件，每次加载完成时重新设置事件监听器
-        iframe.addEventListener('load', setupEventListeners);
+        setupIframeListener(iframe);
     });
+});
+
+function setupIframeListener(iframe) {
+    try {
+        const iframeWindow = iframe.contentWindow;
+        // 检查是否可以直接访问 iframe 内容
+        if (iframeWindow && iframeWindow.document) {
+            console.log(" 同源 iframe，直接添加事件监听")
+            // 同源 iframe，直接添加事件监听
+            const setupEventListeners = () => {
+                const iframeWindow = iframe.contentWindow;
+                // 在 iframe 内部监听事件并调用相关方法
+                iframeWindow.addEventListener('contextmenu', handlerContextmenu, false);
+                iframeWindow.addEventListener('pointerdown', handlerPointerdown, false);
+                iframeWindow.addEventListener('pointerup', handlerPointerup, false);
+                iframeWindow.addEventListener('pointermove', (event) => {
+                    if (isRightClicking && !isDoubleClick) {
+                        const x = event.clientX;
+                        const y = event.clientY;
+                        log("iframe client", x, y);
+                        // 获取iframe相对于主文档的偏移量
+                        const iframeRect = event.target.ownerDocument.defaultView.frameElement.getBoundingClientRect();
+    
+                        // 调整坐标为相对于主文档的坐标
+                        const docX = x + iframeRect.left;
+                        const docY = y + iframeRect.top;
+                        const adjustedEvent = {
+                            type: 'pointermove',
+                            clientX: docX,
+                            clientY: docY,
+                            ...event
+                        };
+                        handlerPointermove(adjustedEvent);
+                    }
+                }, false);
+            };
+            // 第一次加载时设置事件监听器
+            setupEventListeners();
+            // 监听 iframe 的 load 事件，每次加载完成时重新设置事件监听器
+            iframe.addEventListener('load', setupEventListeners);
+        } else {
+            console.log(" 跨域 iframe")
+            // 跨域 iframe，使用 postMessage
+            iframe.addEventListener('load', () => {
+                iframeWindow.postMessage({
+                    type: 'SETUP_GESTURE_LISTENERS',
+                    source: 'mouse-gesture-extension'
+                }, '*');
+            });
+        }
+    } catch (e) {
+        // 如果访问 iframe.contentWindow.document 出错，说明是跨域的
+        console.log(" 出错，说明是跨域的")
+        iframe.addEventListener('load', () => {
+            iframe.contentWindow.postMessage({
+                type: 'SETUP_GESTURE_LISTENERS',
+                source: 'mouse-gesture-extension'
+            }, '*');
+        });
+    }
+}
+
+// 添加消息监听器，接收来自 iframe 的事件
+window.addEventListener('message', (event) => {
+    // 验证消息来源
+    if (event.data.source !== 'mouse-gesture-iframe') return;
+
+    switch (event.data.type) {
+        case 'GESTURE_CONTEXTMENU':
+            handlerContextmenu(event.data.event);
+            break;
+        case 'GESTURE_POINTERDOWN':
+            handlerPointerdown(event.data.event);
+            break;
+        case 'GESTURE_POINTERUP':
+            handlerPointerup(event.data.event);
+            break;
+    }
 });
 
 function handlerContextmenu(event) {

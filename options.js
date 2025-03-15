@@ -102,10 +102,8 @@ function loadGestures() {
         });
         // 再加载自定义手势
         Object.entries(customGestures).forEach(([key, value]) => {
-            if (value.actionType !== 'nothing') {  // 只有当动作不是"无"时才覆盖
-                console.log("customGestures " + key, value);
-                allGestures[key] = { ...value };
-            }
+            console.log("customGestures " + key, value);
+            allGestures[key] = { ...value };
         });
 
         console.log(allGestures)
@@ -147,7 +145,7 @@ function updateGestureAction(gestureKey, newActionType) {
     chrome.storage.sync.get(['customGestures'], function (result) {
         const customGestures = result.customGestures || {};
         const isDefaultGesture = gestureKey in defaultGestures;
-
+        console.log(gestureKey, newActionType)
         // 更新自定义手势
         customGestures[gestureKey] = {
             name: isDefaultGesture ? defaultGestures[gestureKey].name : customGestures[gestureKey]?.name || actionNameMap[newActionType],
@@ -170,10 +168,6 @@ function updateGestureAction(gestureKey, newActionType) {
 // 重置为默认配置
 function resetGestures() {
     if (confirm('确定要重置所有手势为默认配置吗？这将删除所有自定义手势。')) {
-        // 清除自定义手势数据
-        chrome.storage.sync.remove('customGestures', function() {
-            console.log('已清除自定义手势数据');
-        });
         chrome.storage.sync.set({ customGestures: {} }, function () {
             loadGestures(); // 重新加载手势列表
             // 显示成功提示
@@ -222,7 +216,7 @@ function clearStorageData() {
 document.addEventListener('DOMContentLoaded', loadGestures);
 
 // 添加重置按钮事件监听器
-document.getElementById('reset-gesture').addEventListener('click', function() {
+document.getElementById('reset-gesture').addEventListener('click', function () {
     if (confirm('确定要重置所有手势为默认配置吗？这将删除所有自定义手势。')) {
         clearStorageData();
     }
