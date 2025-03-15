@@ -147,7 +147,11 @@ function handlerPointerdown(event) {
 }
 function handlerPointerup(event) {
     if (event.button === 2 && !isDoubleClick) { // 右键
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除画布上的内容
         isRightClicking = false;
+        setTimeout(() => {
+            removeGestureBndgCanvas();
+        }, 70)
         if (mouseTrail.length > 0) {
             // 发送手势数据给后台
             log("pointerup发送手势数据给后台");
@@ -163,10 +167,6 @@ function handlerPointerup(event) {
         }
         // 重置双击标记
         isDoubleClick = false;
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除画布上的内容
-        setTimeout(() => {
-            removeGestureBndgCanvas();
-        }, 70)
     }
 }
 function handlerPointermove(event) {
@@ -195,7 +195,6 @@ function handlerPointermove(event) {
                 });
             } else {
                 // 调用公共方法log输出 开发模式可以打印 发布模式关闭
-                log("忽略变化小点");
             }
         }
         // 限制轨迹长度 
@@ -222,7 +221,6 @@ function handlerPointermove(event) {
 
         // 绘制半透明方框和文字提示
         if (isShowTips && currentTextTips !== null && currentTextTips !== "") {
-            log("绘制半透明方框和文字提示");
             drawTextBoxAndMessage();
         } else {
             log("不绘制半透明方框和文字提示 因为isShowTips " + isShowTips + " || " + currentTextTips);

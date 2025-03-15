@@ -129,6 +129,104 @@
         .gesture-instructions li:hover {
             background-color: #e9e9e9;
         }
+
+        /* 添加新的样式 */
+        .gesture-customization {
+            margin-top: 20px;
+        }
+
+        .gesture-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .add-gesture-btn, .reset-gesture-btn {
+            flex: 1;
+        }
+
+        .reset-gesture-btn {
+            background-color: #6c757d;
+        }
+
+        .reset-gesture-btn:hover {
+            background-color: #5a6268;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .form-group select, .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        select[multiple] {
+            height: 100px;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .gesture-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        .gesture-item .gesture-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .gesture-item button {
+            padding: 5px 10px;
+            margin: 0;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 
@@ -153,17 +251,14 @@
 
         <div class="gesture-instructions">
             <h2>手势操作</h2>
-            <ul>
-                <li><span>向左</span><span>后退</span></li>
-                <li><span>向右</span><span>前进</span></li>
-                <li><span>向上</span><span>向上滚动</span></li>
-                <li><span>向下</span><span>向下滚动</span></li>
-                <li><span>向右然后向下</span><span>刷新页面</span></li>
-                <li><span>向下然后向右</span><span>关闭当前标签页</span></li>
-                <li><span>向下然后向上</span><span>滚动到页面顶部</span></li>
-                <li><span>向上然后向下</span><span>滚动到页面底部</span></li>
-                <li><span>向左然后向上</span><span>重新打开上一个关闭的标签页</span></li>
-            </ul>
+            <div class="gesture-customization">
+                <div class="gesture-buttons">
+                    <button id="reset-gesture" class="reset-gesture-btn">重置为默认配置</button>
+                </div>
+                <div id="gesture-list">
+                    <!-- 手势列表将通过JavaScript动态填充 -->
+                </div>
+            </div>
         </div>
     </div>
     <script src="options.js"></script>

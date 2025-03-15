@@ -1,8 +1,3 @@
-function log(...data) {
-    if (false) {
-        console.log(data);
-    }
-}
 class Direction {
     static Up = 0;
     static Right = 1;
@@ -38,104 +33,233 @@ function restoreLastClosedTab() {
             // 恢复标签页
             chrome.sessions.restore(nextTab.sessionId);
         } else {
-            log("No more closed tabs to restore.");
+            console.log("No more closed tabs to restore.");
         }
     });
 }
 
+// 手势动作映射管理器
+class GestureActionManager {
+    constructor() {
+        this.gestureMap = new Map();
+        // 检查版本并清理旧数据
+        chrome.storage.sync.get(['version'], (result) => {
+            const currentVersion = chrome.runtime.getManifest().version;
+            if (result.version !== currentVersion) {
+                // 版本不同，清理旧数据
+                chrome.storage.sync.clear(() => {
+                    chrome.storage.sync.set({ version: currentVersion });
+                    this.loadGestures();
+                });
+            } else {
+                this.loadGestures();
+            }
+        });
+    }
 
+    async loadGestures() {
+        // 加载默认手势
+        this.setDefaultGestures();
+        
+        // 从存储中加载自定义手势
+        try {
+            const result = await chrome.storage.sync.get('customGestures');
+            console.log(result.customGestures)
+            if (result.customGestures) {
+                Object.entries(result.customGestures).forEach(([gestureKey, gestureData]) => {
+                    // 将字符串形式的手势转换回数组
+                    const gesture = JSON.parse(gestureKey);
+                    this.setGestureAction(gesture, gestureData.name, this.getActionFunction(gestureData.actionType));
+                });
+            }
+        } catch (error) {
+            console.error('Error loading custom gestures:', error);
+        }
+    }
+
+    setDefaultGestures() {
+        const defaultGestures = {
+            [JSON.stringify(downDirections)]: { name: "向下滚动", actionType: "scrollOnePageDown" },
+            [JSON.stringify(upDirections)]: { name: "向上滚动", actionType: "scrollOnePageUp" },
+            [JSON.stringify(leftDirections)]: { name: "后退", actionType: "goBack" },
+            [JSON.stringify(rightDirections)]: { name: "前进", actionType: "goForward" },
+            [JSON.stringify(downRightDirections)]: { name: "关闭当前标签页", actionType: "closeCurrentTab" },
+            [JSON.stringify(upDownDirections)]: { name: "滚动到底部", actionType: "scrollToBottom" },
+            [JSON.stringify(downUpDirections)]: { name: "滚动到顶部", actionType: "scrollToTop" },
+            [JSON.stringify(leftUpDirections)]: { name: "恢复关闭的标签页", actionType: "restoreLastClosedTab" },
+            [JSON.stringify(rightDownDirections)]: { name: "刷新页面", actionType: "refreshPage" }
+        };
+
+        // 直接将默认手势添加到 gestureMap，而不是调用 setGestureAction
+        Object.entries(defaultGestures).forEach(([gestureKey, gestureData]) => {
+            this.gestureMap.set(gestureKey, {
+                name: gestureData.name,
+                action: this.getActionFunction(gestureData.actionType)
+            });
+        });
+    }
+
+    getActionFunction(actionType) {
+        const actionMap = {
+            'nothing': () => {
+                // 无动作，什么都不做
+            },
+            'scrollOnePageDown': () => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, { type: "scrollOnePageDown" });
+                });
+            },
+            'scrollOnePageUp': () => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, { type: "scrollOnePageUp" });
+                });
+            },
+            'goBack': () => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, { type: "goBack" });
+                });
+            },
+            'goForward': () => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, { type: "goForward" });
+                });
+            },
+            'closeCurrentTab': () => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    if (tabs.length > 0) chrome.tabs.remove(tabs[0].id);
+                });
+            },
+            'scrollToBottom': () => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, { type: "scrollToBottom" });
+                });
+            },
+            'scrollToTop': () => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, { type: "scrollToTop" });
+                });
+            },
+            'restoreLastClosedTab': () => {
+                restoreLastClosedTab();
+            },
+            'refreshPage': () => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, { type: "refreshPage" });
+                });
+            }
+        };
+        return actionMap[actionType];
+    }
+
+    // 添加或更新手势映射
+    async setGestureAction(gesture, actionName, actionFunction) {
+        const gestureKey = JSON.stringify(gesture);
+        this.gestureMap.set(gestureKey, {
+            name: actionName,
+            action: actionFunction
+        });
+
+        保存到存储
+        try {
+            const result = await chrome.storage.sync.get('customGestures');
+            console.log(result)
+            const customGestures = result.customGestures || {};
+            customGestures[gestureKey] = {
+                name: actionName,
+                actionType: this.getActionType(actionFunction)
+            };
+            await chrome.storage.sync.set({ customGestures });
+        } catch (error) {
+            console.error('Error saving custom gesture:', error);
+        }
+    }
+
+    getActionType(actionFunction) {
+        // 通过比较函数字符串来确定动作类型
+        if(actionFunction) {
+            const actionString = actionFunction.toString();
+            for (const [type, func] of Object.entries(this.getActionFunction)) {
+                if (func.toString() === actionString) {
+                    return type;
+                }
+            }
+        }
+        return null;
+    }
+
+    // 执行手势对应的动作
+    executeGesture(gesture) {
+        const gestureKey = JSON.stringify(gesture);
+        const actionObj = this.gestureMap.get(gestureKey);
+        if (actionObj && actionObj.action && typeof actionObj.action === 'function') {
+            actionObj.action();
+            return actionObj.name;
+        }
+        return "无效手势";
+    }
+
+    // 获取手势对应的动作名称
+    getGestureActionName(gesture) {
+        const gestureKey = JSON.stringify(gesture);
+        const actionObj = this.gestureMap.get(gestureKey);
+        return actionObj ? actionObj.name : "无效手势";
+    }
+}
+
+// 创建手势动作管理器实例
+const gestureManager = new GestureActionManager();
+
+// 修改原有的消息处理逻辑
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === "mousePoint") {
         if (trail.length === 0) {
-            // 将第一个点加入轨迹
             trail.push(msg.point);
-            log("将第一个点加入轨迹:", msg.point);
+            console.log("将第一个点加入轨迹:", msg.point);
         } else {
             trail.push(msg.point);
-            // 有了两个点 可以计算方位角
             processAzimuth(trail);
         }
         sendResponse({ status: "success" });
     } else if (msg.type === "mouseAction") {
-        log("最终方向数组：", allDirections);
-        // 处理手势
-        if (isSameDirection(allDirections, downRightDirections)) {
-            // 获取当前活动的标签页并关闭
-            chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-                if (tabs.length > 0) {
-                    let tab = tabs[0];  // 获取当前标签页
-                    chrome.tabs.remove(tab.id, function () {
-                        log(`标签页 ${tab.id} 已关闭`);
-                    });
-                }
-            });
-        } else if (isSameDirection(allDirections, upDownDirections)) {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                const tab = tabs[0];
-                chrome.tabs.sendMessage(tab.id, { type: 'scrollToBottom' });
-            });
-        } else if (isSameDirection(allDirections, downUpDirections)) {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                const tab = tabs[0];
-                chrome.tabs.sendMessage(tab.id, { type: 'scrollToTop' });
-            });
-        } else if (isSameDirection(allDirections, downDirections)) {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                chrome.tabs.sendMessage(tabs[0].id, { type: "scrollOnePageDown" }); // 发送向下滚动命令
-            });
-        } else if (isSameDirection(allDirections, upDirections)) {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                chrome.tabs.sendMessage(tabs[0].id, { type: "scrollOnePageUp" }); // 发送向上滚动命令
-            });
-        } else if (isSameDirection(allDirections, rightDirections)) {
-            // 例子：执行前进操作
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                chrome.tabs.sendMessage(tabs[0].id, { type: "goForward" });
-            });
-        } else if (isSameDirection(allDirections, leftDirections)) {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                chrome.tabs.sendMessage(tabs[0].id, { type: "goBack" });
-            });
-        } else if (isSameDirection(allDirections, rightDownDirections)) {
-            // 刷新页面
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                chrome.tabs.sendMessage(tabs[0].id, { type: "refreshPage" });
-            });
-        } else if (isSameDirection(allDirections, leftUpDirections)) {
-            restoreLastClosedTab();
-        } else {
-        }
+        console.log("最终方向数组：", allDirections);
+        // 使用手势管理器执行动作
+        gestureManager.executeGesture(allDirections);
         // 清空方向数组
         trail = [];
         allDirections = [];
+        sendResponse({ status: "success" });
+    } else if (msg.type === "setGestureAction") {
+        // 处理自定义手势设置
+        const { gesture, actionName, actionFunction } = msg;
+        gestureManager.setGestureAction(gesture, actionName, actionFunction);
+        sendResponse({ status: "success" });
+    } else if (msg.type === "updateGestures") {
+        // 处理手势更新
+        const { customGestures } = msg;
+        // 重新初始化手势管理器
+        gestureManager.gestureMap.clear();
+        gestureManager.setDefaultGestures();
+        
+        // 应用自定义手势
+        Object.entries(customGestures).forEach(([gestureKey, gestureData]) => {
+            const gesture = JSON.parse(gestureKey);
+            const actionFunction = gestureManager.getActionFunction(gestureData.actionType);
+            if (actionFunction) {
+                gestureManager.gestureMap.set(gestureKey, {
+                    name: gestureData.name,
+                    action: actionFunction
+                });
+            }
+        });
+        
         sendResponse({ status: "success" });
     }
     return true;
 });
 
+// 更新发送提示的函数
 function sendDirectionTips() {
-    let tips = "";
-    if (isSameDirection(allDirections, rightDownDirections)) {
-        tips = "刷新页面";
-    } else if (isSameDirection(allDirections, downRightDirections)) {
-        tips = "关闭标签页";
-    } else if (isSameDirection(allDirections, downUpDirections)) {
-        tips = "回到顶部";
-    } else if (isSameDirection(allDirections, upDownDirections)) {
-        tips = "回到底部";
-    } else if (isSameDirection(allDirections, downDirections)) {
-        tips = "向下滚动";
-    } else if (isSameDirection(allDirections, upDirections)) {
-        tips = "向上滚动";
-    } else if (isSameDirection(allDirections, rightDirections)) {
-        tips = "前进";
-    } else if (isSameDirection(allDirections, leftDirections)) {
-        tips = "后退";
-    } else if (isSameDirection(allDirections, leftUpDirections)) {
-        tips = "重新打开已关闭的标签页";
-    } else {
-        tips = "无效手势";
-    }
+    const tips = gestureManager.getGestureActionName(allDirections);
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id, { type: "directionTips", text: tips });
     });
@@ -150,18 +274,18 @@ function processAzimuth(simpleTrail) {
         bearing = 360 - bearing;
     }
     // 输出两个点坐标和方位角
-    log("坐标和方位角：", prePoint, currentPoint, bearing);
+    console.log("坐标和方位角：", prePoint, currentPoint, bearing);
     // 计算初始方向
     if (allDirections.length === 0) {
         currentDirection = calcDirection(bearing);
         allDirections.push(currentDirection);
-        log("初始方向：", currentDirection)
+        console.log("初始方向：", currentDirection)
     } else {
         currentDirection = allDirections[allDirections.length - 1];
         let nextDirection = calcDirection(bearing);
         // 仅在方向发生变化时记录
         if (nextDirection !== currentDirection) {
-            log("方向变化：", nextDirection);
+            console.log("方向变化：", nextDirection);
             allDirections.push(nextDirection);
             currentDirection = nextDirection; // 更新当前方向
         }
