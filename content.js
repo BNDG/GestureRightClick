@@ -26,6 +26,7 @@ canvas.style.height = canvas.height + 'px';
 canvas.width = canvas.width * dpr;
 canvas.height = canvas.height * dpr;
 ctx.scale(dpr, dpr);
+var targetElement = window;
 // const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
 // // 计算期望的字体大小（例如：1.5rem）
 // const desiredFontSizeInRem = 1;
@@ -97,7 +98,7 @@ function setupIframeListener(iframe) {
                         log("iframe client", x, y);
                         // 获取iframe相对于主文档的偏移量
                         const iframeRect = event.target.ownerDocument.defaultView.frameElement.getBoundingClientRect();
-    
+
                         // 调整坐标为相对于主文档的坐标
                         const docX = x + iframeRect.left;
                         const docY = y + iframeRect.top;
@@ -107,7 +108,7 @@ function setupIframeListener(iframe) {
                             clientY: docY,
                             ...event
                         };
-                        handlerPointermove(adjustedEvent);
+                        handlerPointermove(adjustedEvent, iframeWindow);
                     }
                 }, false);
             };
@@ -215,7 +216,7 @@ function handlerPointerup(event) {
         isDoubleClick = false;
     }
 }
-function handlerPointermove(event) {
+function handlerPointermove(event, target) {
     if (isRightClicking && !isDoubleClick) {
         // 使用 clientX 和 clientY 获取相对于视口的坐标
         const x = event.clientX;
@@ -223,6 +224,9 @@ function handlerPointermove(event) {
         mouseTrail.push({ x: x, y: y });
         if (prePoint === null) {
             prePoint = { x: x, y: y };
+        }
+        if(mouseTrail.length === 1) {
+            targetElement = target;
         }
         if (mouseTrail.length > 1) {
             let currentPoint = { x: x, y: y };
@@ -281,7 +285,9 @@ document.addEventListener("pointerdown", handlerPointerdown, false);
 document.addEventListener("pointerup", handlerPointerup, false);
 
 // 记录鼠标移动轨迹并绘制
-document.addEventListener("pointermove", handlerPointermove, false);
+document.addEventListener("pointermove", (event) => {
+    handlerPointermove(event, window);
+}, false);
 
 function removeGestureBndgCanvas() {
     const canvas = document.querySelector(".gesture-bndg-canvas");
@@ -326,7 +332,7 @@ function drawTextBoxAndMessage() {
 }
 // 向页面滚动一页
 function scrollOnePageDown() {
-    window.scrollBy({
+    targetElement.scrollBy({
         top: window.innerHeight, // 滚动页面一页的高度
         behavior: 'smooth' // 平滑滚动
     });
@@ -334,7 +340,7 @@ function scrollOnePageDown() {
 
 // 向页面滚动一页向上
 function scrollOnePageUp() {
-    window.scrollBy({
+    targetElement.scrollBy({
         top: -window.innerHeight, // 向上滚动一页的高度
         behavior: 'smooth' // 平滑滚动
     });
@@ -377,10 +383,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 function scrollToTop() {
-    window.scrollTo(0, 0);
+    targetElement.scrollTo(0, 0);
 }
 
 // 滚动到页面底部
 function scrollToBottom() {
-    window.scrollTo(0, document.body.scrollHeight);
+    // 判断 target 是否是 iframe.contentWindow（iframe 内部）
+    if (targetElement === window) {
+        // 如果是 window，表示在主页面中，滚动到页面底部
+        window.scrollTo(0, document.body.scrollHeight);
+    } else if (targetElement && targetElement.document) {
+        // 如果 target 是 iframe.contentWindow，则滚动到 iframe 内部的底部
+        targetElement.scrollTo(0, targetElement.document.documentElement.scrollHeight);
+    }
 }

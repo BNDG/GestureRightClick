@@ -41,20 +41,10 @@ function restoreLastClosedTab() {
 // 手势动作映射管理器
 class GestureActionManager {
     constructor() {
+        // 手势动作映射
         this.gestureMap = new Map();
         // 检查版本并清理旧数据
-        chrome.storage.sync.get(['version'], (result) => {
-            const currentVersion = chrome.runtime.getManifest().version;
-            if (result.version !== currentVersion) {
-                // 版本不同，清理旧数据
-                chrome.storage.sync.clear(() => {
-                    chrome.storage.sync.set({ version: currentVersion });
-                    this.loadGestures();
-                });
-            } else {
-                this.loadGestures();
-            }
-        });
+        this.loadGestures();
     }
 
     async loadGestures() {
