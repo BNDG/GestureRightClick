@@ -21,7 +21,8 @@ canvas.style.height = canvas.height + 'px';
 canvas.width = canvas.width * dpr;
 canvas.height = canvas.height * dpr;
 ctx.scale(dpr, dpr);
-var targetElement = window;
+// 初始化为 document.documentElement（HTML元素）
+var targetElement = document.documentElement;
 // const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
 // // 计算期望的字体大小（例如：1.5rem）
 // const desiredFontSizeInRem = 1;
@@ -221,7 +222,8 @@ function handlerPointermove(event, target) {
             prePoint = { x: x, y: y };
         }
         if(mouseTrail.length === 1) {
-            targetElement = target;
+            // 如果在iframe中，使用传入的target，否则使用文档根元素
+            targetElement = target || document.documentElement;
         }
         if (mouseTrail.length > 1) {
             let currentPoint = { x: x, y: y };
@@ -325,22 +327,6 @@ function drawTextBoxAndMessage() {
     // 绘制文本
     ctx.fillText(currentTextTips, textX, textY);
 }
-// 向页面滚动一页
-function scrollOnePageDown() {
-    console.log(`执行向下滚动操作 ${window.innerHeight}`);
-    targetElement.scrollBy({
-        top: window.innerHeight, // 滚动页面一页的高度
-        behavior: 'smooth' // 平滑滚动
-    });
-}
-
-// 向页面滚动一页向上
-function scrollOnePageUp() {
-    targetElement.scrollBy({
-        top: -window.innerHeight, // 向上滚动一页的高度
-        behavior: 'smooth' // 平滑滚动
-    });
-}
 
 // 监听来自背景脚本的消息
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -378,18 +364,59 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
 });
 
-function scrollToTop() {
-    targetElement.scrollTo(0, 0);
+// 向页面滚动一页
+function scrollOnePageDown() {
+    console.log(`执行向下滚动操作 ${window.innerHeight}`);
+    // 确保 targetElement 是正确的滚动元素
+    if (!targetElement || targetElement === window) {
+        targetElement = document.documentElement;
+    }
+
+    targetElement.scrollBy({
+        top: window.innerHeight,
+        behavior: 'smooth'
+    });
 }
 
-// 滚动到页面底部
-function scrollToBottom() {
-    // 判断 target 是否是 iframe.contentWindow（iframe 内部）
-    if (targetElement === window) {
-        // 如果是 window，表示在主页面中，滚动到页面底部
-        window.scrollTo(0, document.body.scrollHeight);
-    } else if (targetElement && targetElement.document) {
-        // 如果 target 是 iframe.contentWindow，则滚动到 iframe 内部的底部
-        targetElement.scrollTo(0, targetElement.document.documentElement.scrollHeight);
+// 向页面滚动一页向上
+function scrollOnePageUp() {
+    // 确保 targetElement 是正确的滚动元素
+    if (!targetElement || targetElement === window) {
+        targetElement = document.documentElement;
     }
+    // 获取可视区域高度
+    const viewportHeight = window.innerHeight;
+    // h.min(viewpo currentScroll);
+    targetElement.scrollBy({
+        top: -viewportHeight,
+        behavior: 'smooth'
+    });
+}
+
+function scrollToTop() {
+    // 确保 targetElement 是正确的滚动元素
+    if (!targetElement || targetElement === window) {
+        targetElement = document.documentElement;
+    }
+    targetElement.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}
+
+function scrollToBottom() {
+    // 确保 targetElement 是正确的滚动元素
+    if (!targetElement || targetElement === window) {
+        targetElement = document.documentElement;
+    }
+    // 获取实际的滚动高度
+    const scrollHeight = Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight
+    );
+    
+    targetElement.scrollTo({
+        top: scrollHeight,
+        behavior: 'smooth'
+    });
 }

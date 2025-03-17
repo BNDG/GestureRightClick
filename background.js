@@ -80,7 +80,10 @@ class GestureActionManager {
             [JSON.stringify(upDownDirections)]: { name: "滚动到底部", actionType: "scrollToBottom" },
             [JSON.stringify(downUpDirections)]: { name: "滚动到顶部", actionType: "scrollToTop" },
             [JSON.stringify(leftUpDirections)]: { name: "恢复关闭的标签页", actionType: "restoreLastClosedTab" },
-            [JSON.stringify(rightDownDirections)]: { name: "刷新页面", actionType: "refreshPage" }
+            [JSON.stringify(rightDownDirections)]: { name: "刷新页面", actionType: "refreshPage" },
+            [JSON.stringify(rightUpDirections)]: { name: "打开新标签页", actionType: "openNewTab" },
+            [JSON.stringify([Direction.Up, Direction.Left])]: { name: "切换到左边标签页", actionType: "switchLeftTab" },
+            [JSON.stringify([Direction.Up, Direction.Right])]: { name: "切换到右边标签页", actionType: "switchRightTab" }
         };
 
         // 直接将默认手势添加到 gestureMap
@@ -139,31 +142,34 @@ class GestureActionManager {
                 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                     chrome.tabs.sendMessage(tabs[0].id, { type: "refreshPage" });
                 });
+            },
+            'openNewTab': () => {
+                chrome.tabs.create({});
+            },
+            'switchLeftTab': () => {
+                chrome.tabs.query({ currentWindow: true }, (tabs) => {
+                    if (tabs.length <= 1) return; // 只有一个标签页时不执行
+                    
+                    const activeTab = tabs.find(tab => tab.active);
+                    const currentIndex = tabs.indexOf(activeTab);
+                    const newIndex = currentIndex === 0 ? tabs.length - 1 : currentIndex - 1;
+                    
+                    chrome.tabs.update(tabs[newIndex].id, { active: true });
+                });
+            },
+            'switchRightTab': () => {
+                chrome.tabs.query({ currentWindow: true }, (tabs) => {
+                    if (tabs.length <= 1) return; // 只有一个标签页时不执行
+                    
+                    const activeTab = tabs.find(tab => tab.active);
+                    const currentIndex = tabs.indexOf(activeTab);
+                    const newIndex = currentIndex === tabs.length - 1 ? 0 : currentIndex + 1;
+                    
+                    chrome.tabs.update(tabs[newIndex].id, { active: true });
+                });
             }
         };
         return actionMap[actionType];
-    }
-
-    // 添加或更新手势映射
-    async setGestureAction(gesture, actionName, actionFunction) {
-        const gestureKey = JSON.stringify(gesture);
-        this.gestureMap.set(gestureKey, {
-            name: actionName,
-            action: actionFunction
-        });
-        console.log(gestureMap);
-        try {
-            const result = await chrome.storage.sync.get('customGestures');
-            console.log(result)
-            const customGestures = result.customGestures || {};
-            customGestures[gestureKey] = {
-                name: actionName,
-                actionType: this.getActionType(actionFunction)
-            };
-            await chrome.storage.sync.set({ customGestures });
-        } catch (error) {
-            console.error('Error saving custom gesture:', error);
-        }
     }
 
     getActionType(actionFunction) {
@@ -219,11 +225,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // 清空方向数组
         trail = [];
         allDirections = [];
-        sendResponse({ status: "success" });
-    } else if (msg.type === "setGestureAction") {
-        // 处理自定义手势设置
-        const { gesture, actionName, actionFunction } = msg;
-        gestureManager.setGestureAction(gesture, actionName, actionFunction);
         sendResponse({ status: "success" });
     } else if (msg.type === "updateGestures") {
         // 处理手势更新

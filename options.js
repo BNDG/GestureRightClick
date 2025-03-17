@@ -63,15 +63,18 @@ const directionMap = {
 // 动作映射
 const actionNameMap = {
     'nothing': '无操作',
-    'scrollOnePageDown': '向下滚动一页',
     'scrollOnePageUp': '向上滚动一页',
+    'scrollOnePageDown': '向下滚动一页',
     'goBack': '后退',
     'goForward': '前进',
     'closeCurrentTab': '关闭当前标签页',
     'scrollToBottom': '滚动到底部',
     'scrollToTop': '滚动到顶部',
     'restoreLastClosedTab': '恢复关闭的标签页',
-    'refreshPage': '刷新页面'
+    'refreshPage': '刷新页面',
+    'openNewTab': '打开新标签页',
+    'switchLeftTab': '切换到左边标签页',
+    'switchRightTab': '切换到右边标签页'
 };
 
 const svgSymbols = {
@@ -137,7 +140,11 @@ const defaultGestures = {
     '[0,2]': { name: '滚动到底部', actionType: 'scrollToBottom' },
     '[2,0]': { name: '滚动到顶部', actionType: 'scrollToTop' },
     '[3,0]': { name: '恢复关闭的标签页', actionType: 'restoreLastClosedTab' },
-    '[1,2]': { name: '刷新页面', actionType: 'refreshPage' }
+    '[1,2]': { name: '刷新页面', actionType: 'refreshPage' },
+    '[1,0]': { name: '打开新标签页', actionType: 'openNewTab' },
+    '[0,3]': { name: '切换到左边标签页', actionType: 'switchLeftTab' },
+    '[0,1]': { name: '切换到右边标签页', actionType: 'switchRightTab' }
+
 };
 
 // 加载已保存的手势
