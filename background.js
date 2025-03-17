@@ -50,7 +50,7 @@ class GestureActionManager {
     async loadGestures() {
         // 加载默认手势
         this.setDefaultGestures();
-        
+
         // 从存储中加载自定义手势
         try {
             const result = await chrome.storage.sync.get('customGestures');
@@ -59,7 +59,6 @@ class GestureActionManager {
                 Object.entries(result.customGestures).forEach(([gestureKey, gestureData]) => {
                     // 将字符串形式的手势转换回数组
                     const gesture = JSON.parse(gestureKey);
-                    // 这里不再调用 setGestureAction
                     this.gestureMap.set(gestureKey, {
                         name: gestureData.name,
                         action: this.getActionFunction(gestureData.actionType)
@@ -152,7 +151,7 @@ class GestureActionManager {
             name: actionName,
             action: actionFunction
         });
-
+        console.log(gestureMap);
         try {
             const result = await chrome.storage.sync.get('customGestures');
             console.log(result)
@@ -169,7 +168,7 @@ class GestureActionManager {
 
     getActionType(actionFunction) {
         // 通过比较函数字符串来确定动作类型
-        if(actionFunction) {
+        if (actionFunction) {
             const actionString = actionFunction.toString();
             for (const [type, func] of Object.entries(this.getActionFunction)) {
                 if (func.toString() === actionString) {
@@ -232,7 +231,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         // 重新初始化手势管理器
         gestureManager.gestureMap.clear();
         gestureManager.setDefaultGestures();
-        
+
         // 应用自定义手势
         Object.entries(customGestures).forEach(([gestureKey, gestureData]) => {
             const gesture = JSON.parse(gestureKey);
@@ -244,7 +243,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 });
             }
         });
-        
         sendResponse({ status: "success" });
     }
     return true;

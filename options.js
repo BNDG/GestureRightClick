@@ -62,7 +62,7 @@ const directionMap = {
 
 // 动作映射
 const actionNameMap = {
-    'nothing': '无',
+    'nothing': '无操作',
     'scrollOnePageDown': '向下滚动一页',
     'scrollOnePageUp': '向上滚动一页',
     'goBack': '后退',
@@ -197,14 +197,12 @@ function loadGestures() {
 function updateGestureAction(gestureKey, newActionType) {
     chrome.storage.sync.get(['customGestures'], function (result) {
         const customGestures = result.customGestures || {};
-        const isDefaultGesture = gestureKey in defaultGestures;
-        console.log(gestureKey, newActionType)
         // 更新自定义手势
         customGestures[gestureKey] = {
-            name: isDefaultGesture ? defaultGestures[gestureKey].name : customGestures[gestureKey]?.name || actionNameMap[newActionType],
+            name: actionNameMap[newActionType],
             actionType: newActionType
         };
-
+        console.log(gestureKey, newActionType, customGestures)
         // 保存更新
         chrome.storage.sync.set({ customGestures }, function () {
             // 通知 background.js 更新手势

@@ -1,8 +1,3 @@
-function log(...message) {
-    if (true) {
-        console.log(message);
-    }
-}
 let mouseTrail = [];
 const maxTrailLength = 100;
 let isRightClicking = false;
@@ -68,7 +63,7 @@ updateCanvasSize();
 window.addEventListener('resize', updateCanvasSize);
 window.addEventListener('load', function () {
     if (!document.body.contains(canvas)) {
-        log("canvas不存在，创建canvas")
+        console.log("canvas不存在，创建canvas")
         document.body.appendChild(canvas);
     }
     // 获取所有的 <iframe> 元素
@@ -95,7 +90,7 @@ function setupIframeListener(iframe) {
                     if (isRightClicking && !isDoubleClick) {
                         const x = event.clientX;
                         const y = event.clientY;
-                        log("iframe client", x, y);
+                        console.log("iframe client", x, y);
                         // 获取iframe相对于主文档的偏移量
                         const iframeRect = event.target.ownerDocument.defaultView.frameElement.getBoundingClientRect();
 
@@ -170,12 +165,12 @@ function handlerContextmenu(event) {
         // 判断两次点击的间隔是否小于双击的阈值
         if (currentTime - lastClickTime < doubleClickThreshold) {
             // 如果是双击，允许默认的右键菜单弹出
-            log("允许默认的右键菜单弹出");
+            console.log("允许默认的右键菜单弹出");
             isDoubleClick = true;
             return;
         } else {
             // 如果是普通右键点击，阻止右键菜单弹出
-            log("普通右键点击，阻止右键菜单弹出");
+            console.log("普通右键点击，阻止右键菜单弹出");
             isDoubleClick = false;
             event.preventDefault();
         }
@@ -186,7 +181,7 @@ function handlerContextmenu(event) {
 }
 function handlerPointerdown(event) {
     if (event.button === 2) {
-        log("右键按下时开始记录轨迹");
+        console.log("右键按下时开始记录轨迹");
         isRightClicking = true;
         mouseTrail = []; // 清空轨迹
         currentTextTips = "";
@@ -201,14 +196,14 @@ function handlerPointerup(event) {
         }, 70)
         if (mouseTrail.length > 0) {
             // 发送手势数据给后台
-            log("pointerup发送手势数据给后台");
+            console.log("pointerup发送手势数据给后台");
             chrome.runtime.sendMessage({
                 type: "mouseAction"
             }, (response) => {
                 if (chrome.runtime.lastError) {
-                    log("pointerup发送消息失败: ", chrome.runtime.lastError);
+                    console.log("pointerup发送消息失败: ", chrome.runtime.lastError);
                 } else {
-                    log("pointerup消息发送成功:", response);
+                    console.log("pointerup消息发送成功:", response);
                 }
             });
         }
@@ -238,9 +233,9 @@ function handlerPointermove(event, target) {
                     point: currentPoint
                 }, (response) => {
                     if (chrome.runtime.lastError) {
-                        log("move发送消息失败: ", chrome.runtime.lastError);
+                        console.log("move发送消息失败: ", chrome.runtime.lastError);
                     } else {
-                        log("move消息发送成功:", response);
+                        console.log("move消息发送成功:", response);
                     }
                 });
             } else {
@@ -252,7 +247,7 @@ function handlerPointermove(event, target) {
             mouseTrail.shift();
         }
         if (document.body == null) {
-            log("body == null");
+            console.log("body == null");
             return;
         } else if (!document.body.contains(canvas)) {
             document.body.appendChild(canvas);
@@ -273,7 +268,7 @@ function handlerPointermove(event, target) {
         if (isShowTips && currentTextTips !== null && currentTextTips !== "") {
             drawTextBoxAndMessage();
         } else {
-            log("不绘制半透明方框和文字提示 因为isShowTips " + isShowTips + " || " + currentTextTips);
+            console.log("不绘制半透明方框和文字提示 因为isShowTips " + isShowTips + " || " + currentTextTips);
         }
     }
 }
@@ -332,6 +327,7 @@ function drawTextBoxAndMessage() {
 }
 // 向页面滚动一页
 function scrollOnePageDown() {
+    console.log(`执行向下滚动操作 ${window.innerHeight}`);
     targetElement.scrollBy({
         top: window.innerHeight, // 滚动页面一页的高度
         behavior: 'smooth' // 平滑滚动
@@ -348,13 +344,13 @@ function scrollOnePageUp() {
 
 // 监听来自背景脚本的消息
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    log("收到来自background的消息：", msg.type);
+    console.log("收到来自background的消息：", msg.type);
     if (msg.type === "scrollOnePageDown") {
-        log("执行向下滚动操作")
+        console.log("执行向下滚动操作")
         scrollOnePageDown(); // 执行向下滚动操作
         sendResponse({ status: "success" });
     } else if (msg.type === "scrollOnePageUp") {
-        log("执行向上滚动操作")
+        console.log("执行向上滚动操作")
         scrollOnePageUp(); // 执行向上滚动操作
         sendResponse({ status: "success" });
     } else if (msg.type === "scrollToBottom") {
@@ -367,13 +363,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (window.history.length > 1) {
             window.history.forward();
         } else {
-            log("No more pages to go forward.");
+            console.log("No more pages to go forward.");
         }
     } else if (msg.type === "goBack") {
         if (window.history.length > 1) {
             window.history.back();
         } else {
-            log("No previous pages.");
+            console.log("No previous pages.");
         }
     } else if (msg.type === "refreshPage") {
         window.location.reload();
