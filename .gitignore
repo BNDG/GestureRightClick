@@ -2,3 +2,4 @@
 mouse-action-for-mac-edge.code-workspace
 *.zip
 *.DS_Store
+node_modules/
