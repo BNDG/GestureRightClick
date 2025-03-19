@@ -364,7 +364,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
 });
 
-// 向页面滚动一页
+// 向页面滚动
 function scrollOnePageDown() {
     console.log(`执行向下滚动操作 ${window.innerHeight}`);
     // 确保 targetElement 是正确的滚动元素
@@ -378,7 +378,7 @@ function scrollOnePageDown() {
     });
 }
 
-// 向页面滚动一页向上
+// 向上滚动
 function scrollOnePageUp() {
     // 确保 targetElement 是正确的滚动元素
     if (!targetElement || targetElement === window) {

@@ -63,8 +63,8 @@ const directionMap = {
 // 动作映射
 const actionNameMap = {
     'nothing': '无操作',
-    'scrollOnePageUp': '向上滚动一页',
-    'scrollOnePageDown': '向下滚动一页',
+    'scrollOnePageUp': '向上滚动',
+    'scrollOnePageDown': '向下滚动',
     'goBack': '后退',
     'goForward': '前进',
     'closeCurrentTab': '关闭当前标签页',
