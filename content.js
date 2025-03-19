@@ -221,7 +221,7 @@ function handlerPointermove(event, target) {
         if (prePoint === null) {
             prePoint = { x: x, y: y };
         }
-        if(mouseTrail.length === 1) {
+        if (mouseTrail.length === 1) {
             // 如果在iframe中，使用传入的target，否则使用文档根元素
             targetElement = target || document.documentElement;
         }
@@ -361,6 +361,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         window.location.reload();
     } else if (msg.type === "directionTips") {
         currentTextTips = msg.text;
+    } else if (msg.type === "openCalculator") {
+        createPopup();
+    } else if (msg.type === "calcResult") {
+        const resultArea = document.getElementById('calc-result');
+        var result = resultArea.innerText;
+        if (result !== "") {
+            result += "\n" + msg.text;
+        } else {
+            result = msg.text;
+        }
+        document.getElementById('calc-result').innerText = result;
+        resultArea.scrollTo(0, resultArea.scrollHeight);
     }
 });
 
@@ -414,9 +426,115 @@ function scrollToBottom() {
         document.documentElement.scrollHeight,
         document.body.scrollHeight
     );
-    
+
     targetElement.scrollTo({
         top: scrollHeight,
         behavior: 'smooth'
     });
 }
+function createPopup() {
+    if (document.getElementById('calculator-popup')) {
+        document.getElementById('calculator-popup').remove();
+        return;
+    }
+    const popup = document.createElement('div');
+    popup.id = 'calculator-popup';
+    popup.innerHTML = `
+      <style>
+            /* 整体弹出框样式 */
+            #calculator-popup {
+                position: fixed;
+                top: 20px;
+                right: 120px;
+                width: 320px;
+                background-color: #f9f9f9;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                z-index: 9999;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+                display: flex;
+                flex-direction: column;
+            }
+
+            /* 关闭按钮样式 */
+            .close-button {
+                cursor: pointer;
+                position: absolute;
+                top: 4px;
+                left: 12px;
+                font-size: 20px;
+                color: #777;
+                transition: color 0.3s ease;
+                z-index: 1; /* 确保关闭按钮在最上面 */
+            }
+
+            .close-button:hover {
+                color: #333;
+            }
+
+            /* 结果显示区域样式 */
+            .result {
+                padding: 20px;
+                border-bottom: 1px solid #ddd;
+                font-size: 18px;
+                color: #333;
+                min-height: calc(18px * 6 + 20px);
+                max-height: calc(18px * 6 + 20px);
+                overflow-y: auto;
+                margin-top: 30px; /* 给result区域留出空间，避免覆盖close-button */
+            }
+
+            /* 输入容器样式 */
+            .input-container {
+                padding: 20px;
+            }
+
+            /* 输入框样式 */
+            #calc-input {
+                width: 100%;
+                padding: 10px;
+                font-size: 16px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                box-sizing: border-box;
+                transition: border-color 0.3s ease;
+            }
+
+            #calc-input:focus {
+                border-color: #007BFF;
+                outline: none;
+            }
+            </style>
+
+            <div id="calculator-popup">
+            <span class="close-button">&times;</span>
+            <div class="result" id="calc-result"></div>
+            <div class="input-container">
+                <input type="text" id="calc-input" placeholder="请输入表达式（例如：1+(2*5)）" />
+            </div>
+            </div>
+    `;
+
+    document.body.appendChild(popup);
+
+    // 关闭按钮事件监听器
+    const closeButton = popup.querySelector('.close-button');
+    closeButton.addEventListener('click', () => {
+        document.body.removeChild(popup);
+    });
+
+    // 输入框事件监听器
+    const inputField = document.getElementById('calc-input');
+    inputField.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            const expression = event.target.value;
+            chrome.runtime.sendMessage({
+                type: "sendExpression",
+                data: expression
+            });
+            inputField.value = '';
+        }
+    });
+}
+

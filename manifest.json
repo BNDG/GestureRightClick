@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "简单右键手势",
-    "version": "1.0",
+    "version": "1.1.1",
     "description": "一个简单的右键手势扩展，帮助用户通过右键手势快速执行常用操作。",
     "permissions": [
         "history",
@@ -10,8 +10,7 @@
         "storage"
     ],
     "background": {
-        "service_worker": "background.js",
-        "type": "module"
+        "service_worker": "background.js"
     },
     "content_scripts": [
         {
@@ -24,10 +23,24 @@
             "run_at": "document_start"
         },
         {
-            "matches": ["<all_urls>"],
-            "js": ["iframe-content.js"],
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "iframe-content.js"
+            ],
             "all_frames": true,
             "run_at": "document_start"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "libs/math.min.js"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
         }
     ],
     "icons": {

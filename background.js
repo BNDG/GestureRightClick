@@ -1,3 +1,5 @@
+// 引入本地的 mathjs 库
+importScripts("/libs/math.min.js");
 class Direction {
     static Up = 0;
     static Right = 1;
@@ -83,7 +85,8 @@ class GestureActionManager {
             [JSON.stringify(rightDownDirections)]: { name: "刷新页面", actionType: "refreshPage" },
             [JSON.stringify(rightUpDirections)]: { name: "打开新标签页", actionType: "openNewTab" },
             [JSON.stringify([Direction.Up, Direction.Left])]: { name: "切换到左边标签页", actionType: "switchLeftTab" },
-            [JSON.stringify([Direction.Up, Direction.Right])]: { name: "切换到右边标签页", actionType: "switchRightTab" }
+            [JSON.stringify([Direction.Up, Direction.Right])]: { name: "切换到右边标签页", actionType: "switchRightTab" },
+            [JSON.stringify([Direction.Left, Direction.Down, Direction.Right])]: { name: "计算器", actionType: "openCalculator" }
         };
 
         // 直接将默认手势添加到 gestureMap
@@ -149,23 +152,28 @@ class GestureActionManager {
             'switchLeftTab': () => {
                 chrome.tabs.query({ currentWindow: true }, (tabs) => {
                     if (tabs.length <= 1) return; // 只有一个标签页时不执行
-                    
+
                     const activeTab = tabs.find(tab => tab.active);
                     const currentIndex = tabs.indexOf(activeTab);
                     const newIndex = currentIndex === 0 ? tabs.length - 1 : currentIndex - 1;
-                    
+
                     chrome.tabs.update(tabs[newIndex].id, { active: true });
                 });
             },
             'switchRightTab': () => {
                 chrome.tabs.query({ currentWindow: true }, (tabs) => {
                     if (tabs.length <= 1) return; // 只有一个标签页时不执行
-                    
+
                     const activeTab = tabs.find(tab => tab.active);
                     const currentIndex = tabs.indexOf(activeTab);
                     const newIndex = currentIndex === tabs.length - 1 ? 0 : currentIndex + 1;
-                    
+
                     chrome.tabs.update(tabs[newIndex].id, { active: true });
+                });
+            },
+            'openCalculator': () => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, { type: "openCalculator" });
                 });
             }
         };
@@ -245,6 +253,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             }
         });
         sendResponse({ status: "success" });
+    } else if(msg.type === "sendExpression") {
+        sendResponse({ status: "success" });
+        if(msg.data) {
+            var result = msg.data + "\n";
+            try {
+                result += math.evaluate(msg.data); 
+            } catch (error) {
+                console.error('Error evaluating expression:', error);
+                result += 'Invalid expression';
+            }
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                chrome.tabs.sendMessage(tabs[0].id, { type: "calcResult", text: result });
+            });
+        }
     }
     return true;
 });
