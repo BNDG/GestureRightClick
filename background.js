@@ -86,7 +86,8 @@ class GestureActionManager {
             [JSON.stringify(rightUpDirections)]: { name: "打开新标签页", actionType: "openNewTab" },
             [JSON.stringify([Direction.Up, Direction.Left])]: { name: "切换到左边标签页", actionType: "switchLeftTab" },
             [JSON.stringify([Direction.Up, Direction.Right])]: { name: "切换到右边标签页", actionType: "switchRightTab" },
-            [JSON.stringify([Direction.Left, Direction.Down, Direction.Right])]: { name: "计算器", actionType: "openCalculator" }
+            [JSON.stringify([Direction.Down, Direction.Left])]: { name: "计算器", actionType: "openCalculator" },
+            [JSON.stringify([Direction.Right, Direction.Left])]: { name: "翻译", actionType: "openTranslate" },
         };
 
         // 直接将默认手势添加到 gestureMap
@@ -175,6 +176,18 @@ class GestureActionManager {
                 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                     chrome.tabs.sendMessage(tabs[0].id, { type: "openCalculator" });
                 });
+            },
+            'openTranslate': () => {
+                 // 在页面头部添加翻译脚本  
+                 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.scripting.executeScript({
+                        target: { tabId: tabs[0].id },
+                        files: ["libs/translate.min.js"]
+                    }, () => {
+                        // 注入完成后发送消息给 content script
+                        chrome.tabs.sendMessage(tabs[0].id, { type: "translateScriptInjected" });
+                    });
+                });
             }
         };
         return actionMap[actionType];
@@ -253,15 +266,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             }
         });
         sendResponse({ status: "success" });
-    } else if(msg.type === "sendExpression") {
+    } else if (msg.type === "sendExpression") {
         sendResponse({ status: "success" });
-        if(msg.data) {
+        if (msg.data) {
             var result = msg.data + "\n";
             try {
-                result += math.evaluate(msg.data); 
+                result += "= " + math.evaluate(msg.data);
             } catch (error) {
                 console.error('Error evaluating expression:', error);
-                result += 'Invalid expression';
+                result += '= Invalid expression';
             }
             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                 chrome.tabs.sendMessage(tabs[0].id, { type: "calcResult", text: result });

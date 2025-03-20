@@ -1,0 +1,78 @@
+<style>
+    /* 整体弹出框样式 */
+    #calculator-popup {
+        position: fixed;
+        top: 20px;
+        right: 120px;
+        width: 320px;
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        z-index: 9999;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* 关闭按钮样式 */
+    #calc-close {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        transition: color 0.3s ease;
+        z-index: 1;
+        /* 确保关闭按钮在最上面 */
+    }
+
+    #calc-close:hover {
+        color: #333;
+    }
+
+    /* 结果显示区域样式 */
+    .result {
+        padding: 20px;
+        border-bottom: 1px solid #ddd;
+        font-size: 18px;
+        color: #333;
+        height: 139px;
+        overflow-y: auto;
+        margin-top: 32px;
+        /* 给result区域留出空间，避免覆盖close-button */
+    }
+
+    /* 输入容器样式 */
+    .input-container {
+        padding: 20px;
+    }
+
+    /* 输入框样式 */
+    #calc-input {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        transition: border-color 0.3s ease;
+    }
+
+    #calc-input:focus {
+        border-color: #007BFF;
+        outline: none;
+    }
+</style>
+<div id="calculator-popup">
+    <span id="calc-close">
+		<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 32 32">
+		  <circle cx="16" cy="16" r="14" fill="none" stroke="#444" stroke-width="2"/>
+		  
+		  <line x1="8" y1="8" x2="24" y2="24" stroke="#444" stroke-width="2" stroke-linecap="round"/>
+		  <line x1="24" y1="8" x2="8" y2="24" stroke="#444" stroke-width="2" stroke-linecap="round"/>
+		</svg>
+    </span>
+    <div class="result" id="calc-result"></div>
+    <div class="input-container">
+        <input type="text" id="calc-input" placeholder="输入表达式如: 1.5+(2*5)^2" />
+    </div>
+</div>

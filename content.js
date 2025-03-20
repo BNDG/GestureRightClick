@@ -317,9 +317,6 @@ function drawTextBoxAndMessage() {
     ctx.textAlign = "center";  // 水平居中对齐
     ctx.textBaseline = "middle";  // 垂直居中对齐
 
-    // 测量文本宽度
-    const textWidth = ctx.measureText(currentTextTips).width;
-
     // 计算文本在矩形框内的位置
     const textX = centerX;  // 水平居中
     const textY = centerY;  // 垂直居中
@@ -362,20 +359,39 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     } else if (msg.type === "directionTips") {
         currentTextTips = msg.text;
     } else if (msg.type === "openCalculator") {
-        createPopup();
+        createCalcElement("calc");
     } else if (msg.type === "calcResult") {
-        const resultArea = document.getElementById('calc-result');
-        var result = resultArea.innerText;
-        if (result !== "") {
-            result += "\n" + msg.text;
-        } else {
-            result = msg.text;
+        const popup = document.getElementById('calculator-popup');
+        if (popup !== null) {
+            const shadowRoot = popup.shadowRoot;
+            const resultArea = shadowRoot.getElementById('calc-result');
+            var result = resultArea.innerText;
+            if (result !== "") {
+                result += "\n" + msg.text;
+            } else {
+                result = msg.text;
+            }
+            shadowRoot.getElementById('calc-result').innerText = result;
+            resultArea.scrollTo(0, resultArea.scrollHeight);
         }
-        document.getElementById('calc-result').innerText = result;
-        resultArea.scrollTo(0, resultArea.scrollHeight);
+    } else if (msg.type === "translateScriptInjected") {
+        createCalcElement("translate");
+    } else if (msg.type === "translateResult") {
+        const popup = document.getElementById('calculator-popup');
+        if (popup !== null) {
+            const shadowRoot = popup.shadowRoot;
+            const resultArea = shadowRoot.getElementById('calc-result');
+            var result = resultArea.innerText;
+            if (result !== "") {
+                result += "\n" + msg.text;
+            } else {
+                result = msg.text;
+            }
+            shadowRoot.getElementById('calc-result').innerText = result;
+            resultArea.scrollTo(0, resultArea.scrollHeight);
+        }
     }
 });
-
 // 向页面滚动
 function scrollOnePageDown() {
     console.log(`执行向下滚动操作 ${window.innerHeight}`);
@@ -432,109 +448,95 @@ function scrollToBottom() {
         behavior: 'smooth'
     });
 }
-function createPopup() {
+async function createCalcElement(action) {
     if (document.getElementById('calculator-popup')) {
         document.getElementById('calculator-popup').remove();
         return;
     }
-    const popup = document.createElement('div');
-    popup.id = 'calculator-popup';
-    popup.innerHTML = `
-      <style>
-            /* 整体弹出框样式 */
-            #calculator-popup {
-                position: fixed;
-                top: 20px;
-                right: 120px;
-                width: 320px;
-                background-color: #f9f9f9;
-                border: 1px solid #ddd;
-                border-radius: 8px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                z-index: 9999;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-                display: flex;
-                flex-direction: column;
-            }
 
-            /* 关闭按钮样式 */
-            .close-button {
-                cursor: pointer;
-                position: absolute;
-                top: 4px;
-                left: 12px;
-                font-size: 20px;
-                color: #777;
-                transition: color 0.3s ease;
-                z-index: 1; /* 确保关闭按钮在最上面 */
-            }
+    try {
+        // 从外部文件加载模板
+        const response = await fetch(chrome.runtime.getURL('calc-popup.html'));
+        const templateHtml = await response.text();
 
-            .close-button:hover {
-                color: #333;
-            }
+        const popup = document.createElement('div');
+        popup.id = 'calculator-popup';
 
-            /* 结果显示区域样式 */
-            .result {
-                padding: 20px;
-                border-bottom: 1px solid #ddd;
-                font-size: 18px;
-                color: #333;
-                min-height: calc(18px * 6 + 20px);
-                max-height: calc(18px * 6 + 20px);
-                overflow-y: auto;
-                margin-top: 30px; /* 给result区域留出空间，避免覆盖close-button */
-            }
+        // 为 popup 创建 Shadow DOM
+        const shadowRoot = popup.attachShadow({ mode: 'open' });
+        shadowRoot.innerHTML = templateHtml;
 
-            /* 输入容器样式 */
-            .input-container {
-                padding: 20px;
-            }
+        // 将 popup 添加到 body
+        document.body.appendChild(popup);
 
-            /* 输入框样式 */
-            #calc-input {
-                width: 100%;
-                padding: 10px;
-                font-size: 16px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                box-sizing: border-box;
-                transition: border-color 0.3s ease;
-            }
-
-            #calc-input:focus {
-                border-color: #007BFF;
-                outline: none;
-            }
-            </style>
-
-            <div id="calculator-popup">
-            <span class="close-button">&times;</span>
-            <div class="result" id="calc-result"></div>
-            <div class="input-container">
-                <input type="text" id="calc-input" placeholder="请输入表达式（例如：1+(2*5)）" />
-            </div>
-            </div>
-    `;
-
-    document.body.appendChild(popup);
-
-    // 关闭按钮事件监听器
-    const closeButton = popup.querySelector('.close-button');
-    closeButton.addEventListener('click', () => {
-        document.body.removeChild(popup);
-    });
-
-    // 输入框事件监听器
-    const inputField = document.getElementById('calc-input');
-    inputField.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-            const expression = event.target.value;
-            chrome.runtime.sendMessage({
-                type: "sendExpression",
-                data: expression
+        // 关闭按钮事件监听器
+        const closeButton = shadowRoot.getElementById('calc-close');
+        if (closeButton) {
+            closeButton.addEventListener('click', () => {
+                document.body.removeChild(popup);
             });
-            inputField.value = '';
         }
-    });
+
+        // 输入框事件监听器
+        const inputField = shadowRoot.getElementById('calc-input');
+        if (inputField) {
+            if (action === "translate") {
+                inputField.placeholder = "请输入要翻译的文本";
+            }
+            inputField.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    const expression = event.target.value;
+                    if (action === "translate") {
+                        let fromLang = containsChinese(expression) ? 'chinese_simplified' : 'english';
+                        let toLang = containsChinese(expression) ? 'english' : 'chinese_simplified';
+                        var obj = {
+                            from: fromLang,
+                            to: toLang,
+                            texts: [expression]
+                        }
+                        translate.request.translateText(obj, function (data) {
+                            let translation = expression + "\n";
+                            if (data.result === 1) {
+                                translation += "= " + data.text[0];
+                            } else {
+                                translation += '= 翻译失败';
+                            }
+                            const resultArea = shadowRoot.getElementById('calc-result');
+                            var result = resultArea.innerText;
+                            if (result !== "") {
+                                result += "\n" + translation;
+                            } else {
+                                result = translation;
+                            }
+                            shadowRoot.getElementById('calc-result').innerText = result;
+                            resultArea.scrollTo(0, resultArea.scrollHeight);
+                        });
+                    } else {
+                        chrome.runtime.sendMessage({
+                            type: "sendExpression",
+                            data: expression
+                        });
+                    }
+                    inputField.value = ''; // 清空输入框
+                }
+            });
+        }
+
+        setTimeout(() => {
+            const inputField = shadowRoot.getElementById('calc-input');
+            if (inputField) {
+                inputField.focus();
+            }
+        }, 100);
+    } catch (error) {
+        console.error('Failed to load template:', error);
+    }
+
+}
+
+function containsChinese(text) {
+    // 正则表达式匹配中文字符
+    const chineseRegex = /[\u4e00-\u9fa5]/;
+    return chineseRegex.test(text);
 }
 

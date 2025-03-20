@@ -7,7 +7,8 @@
         "history",
         "tabs",
         "sessions",
-        "storage"
+        "storage",
+        "scripting"
     ],
     "background": {
         "service_worker": "background.js"
@@ -36,12 +37,17 @@
     "web_accessible_resources": [
         {
             "resources": [
-                "libs/math.min.js"
+                "libs/*",
+                "calc-popup.html"
             ],
             "matches": [
                 "<all_urls>"
             ]
         }
+    ],
+    "host_permissions": [
+      "*://*/*",
+      "<all_urls>"
     ],
     "icons": {
         "16": "icons/icon.png",
