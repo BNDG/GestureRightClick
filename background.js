@@ -6,6 +6,7 @@ class Direction {
     static Down = 2;
     static Left = 3;
 }
+let injectedTabs = {}; // 用于存储已注入脚本的标签页ID
 // 方位角阈值 ->0(360) ↑90 ←180 ↓270
 const azimuthThreshold = 45;
 let trail = [];
@@ -39,7 +40,15 @@ function restoreLastClosedTab() {
         }
     });
 }
+chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+    delete injectedTabs[tabId]; // 页面关闭时移除记录
+});
 
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === 'complete') {
+        delete injectedTabs[tabId]; // 页面刷新时移除记录
+    }
+});
 // 手势动作映射管理器
 class GestureActionManager {
     constructor() {
@@ -178,21 +187,35 @@ class GestureActionManager {
                 });
             },
             'openTranslate': () => {
-                 // 在页面头部添加翻译脚本  
-                 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                    chrome.scripting.executeScript({
-                        target: { tabId: tabs[0].id },
-                        files: ["libs/translate.min.js"]
-                    }, () => {
-                        // 注入完成后发送消息给 content script
-                        chrome.tabs.sendMessage(tabs[0].id, { type: "translateScriptInjected" });
-                    });
+                // 在页面头部添加翻译脚本  
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    const tabId = tabs[0].id;
+
+                    // 检查是否已经注入
+                    if (!injectedTabs[tabId]) {
+                        chrome.scripting.executeScript({
+                            target: { tabId: tabId },
+                            files: ["libs/translate.min.js"]
+                        }, () => {
+                            if (chrome.runtime.lastError) {
+                                console.error(chrome.runtime.lastError.message);
+                            } else {
+                                // 注入完成后发送消息给 content script 并标记为已注入
+                                chrome.tabs.sendMessage(tabId, { type: "translateScriptInjected" });
+                                injectedTabs[tabId] = true; // 标记此标签页已注入
+                                console.log(`Tab ${tabId} 已成功注入 translate.min.js`);
+                            }
+                        });
+                    } else {
+                        console.log(`Tab ${tabId} 已经注入了 translate.min.js`);
+                        // 如果需要，可以在这里再次发送消息给 content script
+                        chrome.tabs.sendMessage(tabId, { type: "translateScriptInjected" });
+                    }
                 });
             }
         };
         return actionMap[actionType];
     }
-
     getActionType(actionFunction) {
         // 通过比较函数字符串来确定动作类型
         if (actionFunction) {
