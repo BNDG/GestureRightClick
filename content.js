@@ -361,35 +361,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     } else if (msg.type === "openCalculator") {
         createCalcElement("calc");
     } else if (msg.type === "calcResult") {
-        const popup = document.getElementById('calculator-popup');
+        const popup = document.getElementById('bndg-popup-content');
         if (popup !== null) {
             const shadowRoot = popup.shadowRoot;
-            const resultArea = shadowRoot.getElementById('calc-result');
+            const resultArea = shadowRoot.getElementById('bndg-popup-result');
             var result = resultArea.innerText;
             if (result !== "") {
                 result += "\n" + msg.text;
             } else {
                 result = msg.text;
             }
-            shadowRoot.getElementById('calc-result').innerText = result;
+            shadowRoot.getElementById('bndg-popup-result').innerText = result;
             resultArea.scrollTo(0, resultArea.scrollHeight);
         }
     } else if (msg.type === "translateScriptInjected") {
         createCalcElement("translate");
-    } else if (msg.type === "translateResult") {
-        const popup = document.getElementById('calculator-popup');
-        if (popup !== null) {
-            const shadowRoot = popup.shadowRoot;
-            const resultArea = shadowRoot.getElementById('calc-result');
-            var result = resultArea.innerText;
-            if (result !== "") {
-                result += "\n" + msg.text;
-            } else {
-                result = msg.text;
-            }
-            shadowRoot.getElementById('calc-result').innerText = result;
-            resultArea.scrollTo(0, resultArea.scrollHeight);
-        }
     }
 });
 // 向页面滚动
@@ -449,18 +435,18 @@ function scrollToBottom() {
     });
 }
 async function createCalcElement(action) {
-    if (document.getElementById('calculator-popup')) {
-        document.getElementById('calculator-popup').remove();
+    if (document.getElementById('bndg-popup-content')) {
+        document.getElementById('bndg-popup-content').remove();
         return;
     }
 
     try {
         // 从外部文件加载模板
-        const response = await fetch(chrome.runtime.getURL('calc-popup.html'));
+        const response = await fetch(chrome.runtime.getURL('popup-content.html'));
         const templateHtml = await response.text();
 
         const popup = document.createElement('div');
-        popup.id = 'calculator-popup';
+        popup.id = 'bndg-popup-content';
 
         // 为 popup 创建 Shadow DOM
         const shadowRoot = popup.attachShadow({ mode: 'open' });
@@ -470,7 +456,7 @@ async function createCalcElement(action) {
         document.body.appendChild(popup);
 
         // 关闭按钮事件监听器
-        const closeButton = shadowRoot.getElementById('calc-close');
+        const closeButton = shadowRoot.getElementById('bndg-popup-close');
         if (closeButton) {
             closeButton.addEventListener('click', () => {
                 document.body.removeChild(popup);
@@ -478,7 +464,7 @@ async function createCalcElement(action) {
         }
 
         // 输入框事件监听器
-        const inputField = shadowRoot.getElementById('calc-input');
+        const inputField = shadowRoot.getElementById('bndg-popup-input');
         if (inputField) {
             if (action === "translate") {
                 inputField.placeholder = "请输入要翻译的文本";
@@ -487,6 +473,7 @@ async function createCalcElement(action) {
                 if (event.key === 'Enter') {
                     const expression = event.target.value;
                     if (action === "translate") {
+                        inputField.placeholder = "翻译中...";
                         let fromLang = containsChinese(expression) ? 'chinese_simplified' : 'english';
                         let toLang = containsChinese(expression) ? 'english' : 'chinese_simplified';
                         var obj = {
@@ -495,20 +482,21 @@ async function createCalcElement(action) {
                             texts: [expression]
                         }
                         translate.request.translateText(obj, function (data) {
+                            inputField.placeholder = "请输入要翻译的文本";
                             let translation = expression + "\n";
                             if (data.result === 1) {
                                 translation += "= " + data.text[0];
                             } else {
                                 translation += '= 翻译失败';
                             }
-                            const resultArea = shadowRoot.getElementById('calc-result');
+                            const resultArea = shadowRoot.getElementById('bndg-popup-result');
                             var result = resultArea.innerText;
                             if (result !== "") {
                                 result += "\n" + translation;
                             } else {
                                 result = translation;
                             }
-                            shadowRoot.getElementById('calc-result').innerText = result;
+                            shadowRoot.getElementById('bndg-popup-result').innerText = result;
                             resultArea.scrollTo(0, resultArea.scrollHeight);
                         });
                     } else {
@@ -523,7 +511,7 @@ async function createCalcElement(action) {
         }
 
         setTimeout(() => {
-            const inputField = shadowRoot.getElementById('calc-input');
+            const inputField = shadowRoot.getElementById('bndg-popup-input');
             if (inputField) {
                 inputField.focus();
             }
