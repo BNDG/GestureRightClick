@@ -36,7 +36,7 @@ function restoreLastClosedTab() {
             // 恢复标签页
             chrome.sessions.restore(nextTab.sessionId);
         } else {
-            console.log("No more closed tabs to restore.");
+            ;
         }
     });
 }
@@ -65,7 +65,7 @@ class GestureActionManager {
         // 从存储中加载自定义手势
         try {
             const result = await chrome.storage.sync.get('customGestures');
-            console.log(result.customGestures)
+            
             if (result.customGestures) {
                 Object.entries(result.customGestures).forEach(([gestureKey, gestureData]) => {
                     // 将字符串形式的手势转换回数组
@@ -95,8 +95,8 @@ class GestureActionManager {
             [JSON.stringify(rightUpDirections)]: { name: "打开新标签页", actionType: "openNewTab" },
             [JSON.stringify([Direction.Up, Direction.Left])]: { name: "切换到左边标签页", actionType: "switchLeftTab" },
             [JSON.stringify([Direction.Up, Direction.Right])]: { name: "切换到右边标签页", actionType: "switchRightTab" },
-            [JSON.stringify([Direction.Down, Direction.Left])]: { name: "无操作", actionType: "nothing" },
-            [JSON.stringify([Direction.Right, Direction.Left])]: { name: "无操作", actionType: "nothing" },
+            [JSON.stringify([Direction.Down, Direction.Left])]: { name: "计算器", actionType: "openCalculator" },
+            [JSON.stringify([Direction.Right, Direction.Left])]: { name: "翻译", actionType: "openTranslate" },
         };
 
         // 直接将默认手势添加到 gestureMap
@@ -211,11 +211,11 @@ class GestureActionManager {
                                 // 注入完成后发送消息给 content script 并标记为已注入
                                 chrome.tabs.sendMessage(tabId, { type: "translateScriptInjected" });
                                 injectedTabs[tabId] = true; // 标记此标签页已注入
-                                console.log(`Tab ${tabId} 已成功注入 translate.min.js`);
+                                ;
                             }
                         });
                     } else {
-                        console.log(`Tab ${tabId} 已经注入了 translate.min.js`);
+                        ;
                         // 如果需要，可以在这里再次发送消息给 content script
                         chrome.tabs.sendMessage(tabId, { type: "translateScriptInjected" });
                     }
@@ -264,14 +264,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === "mousePoint") {
         if (trail.length === 0) {
             trail.push(msg.point);
-            console.log("将第一个点加入轨迹:", msg.point);
+            ;
         } else {
             trail.push(msg.point);
             processAzimuth(trail);
         }
         sendResponse({ status: "success" });
     } else if (msg.type === "mouseAction") {
-        console.log("最终方向数组：", allDirections);
+        ;
         // 使用手势管理器执行动作
         gestureManager.executeGesture(allDirections);
         // 清空方向数组
@@ -332,18 +332,18 @@ function processAzimuth(simpleTrail) {
         bearing = 360 - bearing;
     }
     // 输出两个点坐标和方位角
-    console.log("坐标和方位角：", prePoint, currentPoint, bearing);
+    ;
     // 计算初始方向
     if (allDirections.length === 0) {
         currentDirection = calcDirection(bearing);
         allDirections.push(currentDirection);
-        console.log("初始方向：", currentDirection)
+        
     } else {
         currentDirection = allDirections[allDirections.length - 1];
         let nextDirection = calcDirection(bearing);
         // 仅在方向发生变化时记录
         if (nextDirection !== currentDirection) {
-            console.log("方向变化：", nextDirection);
+            ;
             allDirections.push(nextDirection);
             currentDirection = nextDirection; // 更新当前方向
         }

@@ -30,6 +30,15 @@
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
         }
 
+        /* 提示文字样式 */
+        .tip {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #007bff;
+            color: #333;
+        }
+
         /* 标题样式 */
         h2 {
             color: #005bb5;
@@ -233,6 +242,12 @@
 
 <body>
     <div class="container">
+        <!-- 提示文字 -->
+        <div class="tip">
+            手势打开计算器/翻译后再次手势可以关闭。<br />
+            翻译支持输入中文翻译为英文，输入英文翻译为中文。
+        </div>
+
         <!-- 颜色和画笔设置 -->
         <div>
             <label for="color-picker">轨迹颜色：</label>

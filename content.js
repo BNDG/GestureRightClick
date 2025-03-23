@@ -64,7 +64,7 @@ updateCanvasSize();
 window.addEventListener('resize', updateCanvasSize);
 window.addEventListener('load', function () {
     if (!document.body.contains(canvas)) {
-        console.log("canvas不存在，创建canvas")
+        
         document.body.appendChild(canvas);
     }
     // 获取所有的 <iframe> 元素
@@ -79,7 +79,7 @@ function setupIframeListener(iframe) {
         const iframeWindow = iframe.contentWindow;
         // 检查是否可以直接访问 iframe 内容
         if (iframeWindow && iframeWindow.document) {
-            console.log(" 同源 iframe，直接添加事件监听")
+            
             // 同源 iframe，直接添加事件监听
             const setupEventListeners = () => {
                 const iframeWindow = iframe.contentWindow;
@@ -91,7 +91,7 @@ function setupIframeListener(iframe) {
                     if (isRightClicking && !isDoubleClick) {
                         const x = event.clientX;
                         const y = event.clientY;
-                        console.log("iframe client", x, y);
+                        ;
                         // 获取iframe相对于主文档的偏移量
                         const iframeRect = event.target.ownerDocument.defaultView.frameElement.getBoundingClientRect();
 
@@ -113,7 +113,7 @@ function setupIframeListener(iframe) {
             // 监听 iframe 的 load 事件，每次加载完成时重新设置事件监听器
             iframe.addEventListener('load', setupEventListeners);
         } else {
-            console.log(" 跨域 iframe")
+            
             // 跨域 iframe，使用 postMessage
             iframe.addEventListener('load', () => {
                 iframeWindow.postMessage({
@@ -124,7 +124,7 @@ function setupIframeListener(iframe) {
         }
     } catch (e) {
         // 如果访问 iframe.contentWindow.document 出错，说明是跨域的
-        console.log(" 出错，说明是跨域的")
+        
         iframe.addEventListener('load', () => {
             iframe.contentWindow.postMessage({
                 type: 'SETUP_GESTURE_LISTENERS',
@@ -166,12 +166,12 @@ function handlerContextmenu(event) {
         // 判断两次点击的间隔是否小于双击的阈值
         if (currentTime - lastClickTime < doubleClickThreshold) {
             // 如果是双击，允许默认的右键菜单弹出
-            console.log("允许默认的右键菜单弹出");
+            ;
             isDoubleClick = true;
             return;
         } else {
             // 如果是普通右键点击，阻止右键菜单弹出
-            console.log("普通右键点击，阻止右键菜单弹出");
+            ;
             isDoubleClick = false;
             event.preventDefault();
         }
@@ -182,7 +182,7 @@ function handlerContextmenu(event) {
 }
 function handlerPointerdown(event) {
     if (event.button === 2) {
-        console.log("右键按下时开始记录轨迹");
+        ;
         isRightClicking = true;
         mouseTrail = []; // 清空轨迹
         currentTextTips = "";
@@ -197,15 +197,15 @@ function handlerPointerup(event) {
         }, 70)
         if (mouseTrail.length > 0) {
             // 发送手势数据给后台
-            console.log("pointerup发送手势数据给后台");
+            ;
             if (chrome.runtime?.id) {
                 chrome.runtime.sendMessage({
                     type: "mouseAction"
                 }, (response) => {
                     if (chrome.runtime.lastError) {
-                        console.log("pointerup发送消息失败: ", chrome.runtime.lastError);
+                        ;
                     } else {
-                        console.log("pointerup消息发送成功:", response);
+                        ;
                     }
                 });
             }
@@ -238,9 +238,9 @@ function handlerPointermove(event, target) {
                         point: currentPoint
                     }, (response) => {
                         if (chrome.runtime.lastError) {
-                            console.log("move发送消息失败: ", chrome.runtime.lastError);
+                            ;
                         } else {
-                            console.log("move消息发送成功:", response);
+                            ;
                         }
                     });
                 }
@@ -253,7 +253,7 @@ function handlerPointermove(event, target) {
             mouseTrail.shift();
         }
         if (document.body == null) {
-            console.log("body == null");
+            ;
             return;
         } else if (!document.body.contains(canvas)) {
             document.body.appendChild(canvas);
@@ -274,7 +274,7 @@ function handlerPointermove(event, target) {
         if (isShowTips && currentTextTips !== null && currentTextTips !== "") {
             drawTextBoxAndMessage();
         } else {
-            console.log("不绘制半透明方框和文字提示 因为isShowTips " + isShowTips + " || " + currentTextTips);
+            ;
         }
     }
 }
@@ -331,13 +331,13 @@ function drawTextBoxAndMessage() {
 
 // 监听来自背景脚本的消息
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    console.log("收到来自background的消息：", msg.type);
+    ;
     if (msg.type === "scrollOnePageDown") {
-        console.log("执行向下滚动操作")
+        
         scrollOnePageDown(); // 执行向下滚动操作
         sendResponse({ status: "success" });
     } else if (msg.type === "scrollOnePageUp") {
-        console.log("执行向上滚动操作")
+        
         scrollOnePageUp(); // 执行向上滚动操作
         sendResponse({ status: "success" });
     } else if (msg.type === "scrollToBottom") {
@@ -350,13 +350,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (window.history.length > 1) {
             window.history.forward();
         } else {
-            console.log("No more pages to go forward.");
+            ;
         }
     } else if (msg.type === "goBack") {
         if (window.history.length > 1) {
             window.history.back();
         } else {
-            console.log("No previous pages.");
+            ;
         }
     } else if (msg.type === "refreshPage") {
         window.location.reload();
@@ -384,7 +384,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 // 向页面滚动
 function scrollOnePageDown() {
-    console.log(`执行向下滚动操作 ${window.innerHeight}`);
+    ;
     // 确保 targetElement 是正确的滚动元素
     if (!targetElement || targetElement === window) {
         targetElement = document.documentElement;

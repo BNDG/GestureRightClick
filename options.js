@@ -171,8 +171,8 @@ const defaultGestures = {
     '[1,0]': { name: '打开新标签页', actionType: 'openNewTab' },
     '[0,3]': { name: '切换到左边标签页', actionType: 'switchLeftTab' },
     '[0,1]': { name: '切换到右边标签页', actionType: 'switchRightTab' },
-    '[2,3]': { name: '无操作', actionType: 'nothing' },
-    '[1,3]': { name: '无操作', actionType: 'nothing' },
+    '[2,3]': { name: '计算器', actionType: 'openCalculator' },
+    '[1,3]': { name: '翻译', actionType: 'openTranslate' },
 
 };
 
@@ -186,16 +186,16 @@ function loadGestures() {
         const allGestures = {};
         // 先加载所有默认手势
         Object.entries(defaultGestures).forEach(([key, value]) => {
-            console.log(key, value);
+            ;
             allGestures[key] = { ...value };
         });
         // 再加载自定义手势
         Object.entries(customGestures).forEach(([key, value]) => {
-            console.log("customGestures " + key, value);
+            ;
             allGestures[key] = { ...value };
         });
 
-        console.log(allGestures)
+        
         // 渲染所有手势
         Object.entries(allGestures).forEach(([gestureKey, gestureData]) => {
             const gesture = JSON.parse(gestureKey);
@@ -238,7 +238,7 @@ function updateGestureAction(gestureKey, newActionType) {
             name: actionNameMap[newActionType],
             actionType: newActionType
         };
-        console.log(gestureKey, newActionType, customGestures)
+        
         // 保存更新
         chrome.storage.sync.set({ customGestures }, function () {
             // 通知 background.js 更新手势
@@ -292,7 +292,7 @@ function showMessage(text) {
 // 添加一个清除存储数据的函数
 function clearStorageData() {
     chrome.storage.sync.clear(() => {
-        console.log('存储数据已清除');
+        ;
         // 重新加载手势列表
         loadGestures();
         showMessage('存储数据已清除');
