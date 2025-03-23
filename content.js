@@ -198,15 +198,17 @@ function handlerPointerup(event) {
         if (mouseTrail.length > 0) {
             // 发送手势数据给后台
             console.log("pointerup发送手势数据给后台");
-            chrome.runtime.sendMessage({
-                type: "mouseAction"
-            }, (response) => {
-                if (chrome.runtime.lastError) {
-                    console.log("pointerup发送消息失败: ", chrome.runtime.lastError);
-                } else {
-                    console.log("pointerup消息发送成功:", response);
-                }
-            });
+            if (chrome.runtime?.id) {
+                chrome.runtime.sendMessage({
+                    type: "mouseAction"
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        console.log("pointerup发送消息失败: ", chrome.runtime.lastError);
+                    } else {
+                        console.log("pointerup消息发送成功:", response);
+                    }
+                });
+            }
         }
         // 重置双击标记
         isDoubleClick = false;
@@ -230,16 +232,18 @@ function handlerPointermove(event, target) {
             let distance = Math.sqrt(Math.pow(currentPoint.x - prePoint.x, 2) + Math.pow(currentPoint.y - prePoint.y, 2));
             if (distance > 10) {
                 prePoint = currentPoint;
-                chrome.runtime.sendMessage({
-                    type: "mousePoint",
-                    point: currentPoint
-                }, (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.log("move发送消息失败: ", chrome.runtime.lastError);
-                    } else {
-                        console.log("move消息发送成功:", response);
-                    }
-                });
+                if (chrome.runtime?.id) {
+                    chrome.runtime.sendMessage({
+                        type: "mousePoint",
+                        point: currentPoint
+                    }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            console.log("move发送消息失败: ", chrome.runtime.lastError);
+                        } else {
+                            console.log("move消息发送成功:", response);
+                        }
+                    });
+                }
             } else {
                 // 调用公共方法log输出 开发模式可以打印 发布模式关闭
             }
@@ -472,6 +476,9 @@ async function createCalcElement(action) {
             inputField.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter') {
                     const expression = event.target.value;
+                    if (expression === "") {
+                        return;
+                    }
                     if (action === "translate") {
                         inputField.placeholder = "翻译中...";
                         let fromLang = containsChinese(expression) ? 'chinese_simplified' : 'english';

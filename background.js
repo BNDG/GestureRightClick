@@ -95,8 +95,8 @@ class GestureActionManager {
             [JSON.stringify(rightUpDirections)]: { name: "打开新标签页", actionType: "openNewTab" },
             [JSON.stringify([Direction.Up, Direction.Left])]: { name: "切换到左边标签页", actionType: "switchLeftTab" },
             [JSON.stringify([Direction.Up, Direction.Right])]: { name: "切换到右边标签页", actionType: "switchRightTab" },
-            [JSON.stringify([Direction.Down, Direction.Left])]: { name: "计算器", actionType: "openCalculator" },
-            [JSON.stringify([Direction.Right, Direction.Left])]: { name: "翻译", actionType: "openTranslate" },
+            [JSON.stringify([Direction.Down, Direction.Left])]: { name: "无操作", actionType: "nothing" },
+            [JSON.stringify([Direction.Right, Direction.Left])]: { name: "无操作", actionType: "nothing" },
         };
 
         // 直接将默认手势添加到 gestureMap
@@ -191,6 +191,14 @@ class GestureActionManager {
                 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
                     const tabId = tabs[0].id;
 
+                    // 使用 chrome.runtime.getURL 来获取扩展的 options 页面真实 URL
+                    const optionsPageUrl = chrome.runtime.getURL("options.html");
+
+                    // 检查 URL 是否是扩展页面（以 chrome:// 或 extension:// 开头）
+                    if (tabs[0].url === optionsPageUrl) {
+                        chrome.tabs.sendMessage(tabId, { type: "translateScriptInjected" });
+                        return;
+                    }
                     // 检查是否已经注入
                     if (!injectedTabs[tabId]) {
                         chrome.scripting.executeScript({
