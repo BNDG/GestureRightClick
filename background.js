@@ -9,6 +9,7 @@ class Direction {
 let injectedTabs = {}; // 用于存储已注入脚本的标签页ID
 // 方位角阈值 ->0(360) ↑90 ←180 ↓270
 const azimuthThreshold = 45;
+let fracDigits = 3; // 小数位数
 let trail = [];
 let allDirections = [];
 let currentDirection = Direction.Down;
@@ -65,7 +66,7 @@ class GestureActionManager {
         // 从存储中加载自定义手势
         try {
             const result = await chrome.storage.sync.get('customGestures');
-            
+
             if (result.customGestures) {
                 Object.entries(result.customGestures).forEach(([gestureKey, gestureData]) => {
                     // 将字符串形式的手势转换回数组
@@ -300,9 +301,32 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     } else if (msg.type === "sendExpression") {
         sendResponse({ status: "success" });
         if (msg.data) {
-            var result = msg.data + "\n";
+            let inputExpression = msg.data.toString();
+            // 1. 去除多余空格
+            inputExpression = inputExpression.trim().replace(/\s+/g, ' ');
+            let result = inputExpression + "\n";
+            // 2. 使用正则表达式匹配 scale = <数字> 格式
+            let scaleMatch = inputExpression.match(/^scale\s*=\s*(-?\d+)$/i);
+            if (scaleMatch) {
+                // 3. 提取数字并转换为整数
+                fracDigits = parseInt(scaleMatch[1], 10); // 获取 scale 的值
+                // 4. 验证范围
+                if (fracDigits < 0 || fracDigits > 10) {
+                    result += "= Invalid scale value";
+                    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                        chrome.tabs.sendMessage(tabs[0].id, { type: "calcResult", text: result });
+                    });
+                    return;
+                }
+                result += `小数位数设为 ${fracDigits}`;
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    chrome.tabs.sendMessage(tabs[0].id, { type: "calcResult", text: result });
+                });
+                return;
+            }
             try {
-                result += "= " + math.evaluate(msg.data);
+                let calcResult = math.evaluate(inputExpression);
+                result += "= " + parseFloat(calcResult.toFixed(fracDigits));
             } catch (error) {
                 console.error('Error evaluating expression:', error);
                 result += '= Invalid expression';
@@ -337,7 +361,7 @@ function processAzimuth(simpleTrail) {
     if (allDirections.length === 0) {
         currentDirection = calcDirection(bearing);
         allDirections.push(currentDirection);
-        
+
     } else {
         currentDirection = allDirections[allDirections.length - 1];
         let nextDirection = calcDirection(bearing);

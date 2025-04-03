@@ -418,7 +418,6 @@ function scrollToTop() {
     }
     targetElement.scrollTo({
         top: 0,
-        behavior: 'smooth'
     });
 }
 
@@ -435,7 +434,6 @@ function scrollToBottom() {
 
     targetElement.scrollTo({
         top: scrollHeight,
-        behavior: 'smooth'
     });
 }
 async function createCalcElement(action) {
