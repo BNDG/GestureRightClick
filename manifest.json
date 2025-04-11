@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "简单右键手势",
-    "version": "1.1.1",
-    "description": "经典的右键手势操作。",
+    "version": "1.1.2",
+    "description": "经典的右键手势操作。带有计算器和翻译小工具。",
     "permissions": [
         "history",
         "tabs",
