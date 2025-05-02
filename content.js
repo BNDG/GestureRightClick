@@ -387,7 +387,7 @@ function scrollOnePageDown() {
     ;
     // 确保 targetElement 是正确的滚动元素
     if (!targetElement || targetElement === window) {
-        targetElement = document.documentElement;
+        targetElement = window;
     }
 
     targetElement.scrollBy({
@@ -400,7 +400,7 @@ function scrollOnePageDown() {
 function scrollOnePageUp() {
     // 确保 targetElement 是正确的滚动元素
     if (!targetElement || targetElement === window) {
-        targetElement = document.documentElement;
+        targetElement = window;
     }
     // 获取可视区域高度
     const viewportHeight = window.innerHeight;
@@ -414,7 +414,7 @@ function scrollOnePageUp() {
 function scrollToTop() {
     // 确保 targetElement 是正确的滚动元素
     if (!targetElement || targetElement === window) {
-        targetElement = document.documentElement;
+        targetElement = window;
     }
     targetElement.scrollTo({
         top: 0,
@@ -424,7 +424,7 @@ function scrollToTop() {
 function scrollToBottom() {
     // 确保 targetElement 是正确的滚动元素
     if (!targetElement || targetElement === window) {
-        targetElement = document.documentElement;
+        targetElement = window;
     }
     // 获取实际的滚动高度
     const scrollHeight = Math.max(
