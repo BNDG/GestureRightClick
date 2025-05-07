@@ -1,4 +1,7 @@
 let mouseTrail = [];
+let bndgInputList = [];
+// 记录当前历史位置
+let historyIndex = -1;
 const maxTrailLength = 100;
 let isRightClicking = false;
 let prePoint = null;
@@ -64,7 +67,7 @@ updateCanvasSize();
 window.addEventListener('resize', updateCanvasSize);
 window.addEventListener('load', function () {
     if (!document.body.contains(canvas)) {
-        
+
         document.body.appendChild(canvas);
     }
     // 获取所有的 <iframe> 元素
@@ -79,7 +82,7 @@ function setupIframeListener(iframe) {
         const iframeWindow = iframe.contentWindow;
         // 检查是否可以直接访问 iframe 内容
         if (iframeWindow && iframeWindow.document) {
-            
+
             // 同源 iframe，直接添加事件监听
             const setupEventListeners = () => {
                 const iframeWindow = iframe.contentWindow;
@@ -113,7 +116,7 @@ function setupIframeListener(iframe) {
             // 监听 iframe 的 load 事件，每次加载完成时重新设置事件监听器
             iframe.addEventListener('load', setupEventListeners);
         } else {
-            
+
             // 跨域 iframe，使用 postMessage
             iframe.addEventListener('load', () => {
                 iframeWindow.postMessage({
@@ -124,7 +127,7 @@ function setupIframeListener(iframe) {
         }
     } catch (e) {
         // 如果访问 iframe.contentWindow.document 出错，说明是跨域的
-        
+
         iframe.addEventListener('load', () => {
             iframe.contentWindow.postMessage({
                 type: 'SETUP_GESTURE_LISTENERS',
@@ -333,11 +336,11 @@ function drawTextBoxAndMessage() {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     ;
     if (msg.type === "scrollOnePageDown") {
-        
+
         scrollOnePageDown(); // 执行向下滚动操作
         sendResponse({ status: "success" });
     } else if (msg.type === "scrollOnePageUp") {
-        
+
         scrollOnePageUp(); // 执行向上滚动操作
         sendResponse({ status: "success" });
     } else if (msg.type === "scrollToBottom") {
@@ -477,6 +480,8 @@ async function createCalcElement(action) {
                     if (expression === "") {
                         return;
                     }
+                    bndgInputList.push(expression);
+                    historyIndex = -1;
                     if (action === "translate") {
                         inputField.placeholder = "翻译中...";
                         let fromLang = containsChinese(expression) ? 'chinese_simplified' : 'english';
@@ -511,6 +516,25 @@ async function createCalcElement(action) {
                         });
                     }
                     inputField.value = ''; // 清空输入框
+                } else if (event.key === 'ArrowUp') {
+                    if (historyIndex < bndgInputList.length - 1) {
+                        historyIndex++;
+                        inputField.value = bndgInputList[bndgInputList.length - 1 - historyIndex];
+                    }
+                    setTimeout(() => {
+                        inputField.setSelectionRange(inputField.value.length, inputField.value.length);
+                    }, 100); 
+                } else if (event.key === 'ArrowDown') {
+                    if (historyIndex > 0) {
+                        historyIndex--;
+                        inputField.value = bndgInputList[bndgInputList.length - 1 - historyIndex];
+                        setTimeout(() => {
+                            inputField.setSelectionRange(inputField.value.length, inputField.value.length);
+                        }, 100); 
+                    } else if (historyIndex === 0) {
+                        historyIndex--;
+                        inputField.value = ''; // 清空输入框
+                    }
                 }
             });
         }
