@@ -383,6 +383,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         }
     } else if (msg.type === "translateScriptInjected") {
         createCalcElement("translate");
+        translate.service.use('client.edge');
     }
 });
 // 向页面滚动
@@ -444,7 +445,6 @@ async function createCalcElement(action) {
         document.getElementById('bndg-popup-content').remove();
         return;
     }
-
     try {
         // 从外部文件加载模板
         const response = await fetch(chrome.runtime.getURL('popup-content.html'));
