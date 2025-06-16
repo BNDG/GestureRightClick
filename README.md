@@ -14,18 +14,18 @@ Mac上的Edge一直没有内置的手势，扩展市场里也找不到crxMouse G
 - **先向左再向上**：重新打开已关闭的标签页。
 - **先向下再向左**：打开计算器。
 - **先向右再向左**：打开翻译。
-Double Right-Click: Opens the system menu.
-Swipe Left: Navigates back to the previous page.
-Swipe Right: Moves forward to the next page.
-Swipe Up: Scrolls the page upward.
-Swipe Down: Scrolls the page downward.
-Right then Down: Refreshes the current page.
-Down then Right: Closes the active tab.
-Down then Up: Scrolls to the top of the page.
-Up then Down: Scrolls to the bottom of the page.
-Left then Up: Reopens the last closed tab.
-Down then Left: Opens the calculator application.
-Right then Left: Opens the translation tool.
+- Double Right-Click: Opens the system menu.
+- Swipe Left: Navigates back to the previous page.
+- Swipe Right: Moves forward to the next page.
+- Swipe Up: Scrolls the page upward.
+- Swipe Down: Scrolls the page downward.
+- Right then Down: Refreshes the current page.
+- Down then Right: Closes the active tab.
+- Down then Up: Scrolls to the top of the page.
+- Up then Down: Scrolls to the bottom of the page.
+- Left then Up: Reopens the last closed tab.
+- Down then Left: Opens the calculator application.
+- Right then Left: Opens the translation tool.
 <img src="./edgeMouse.png" alt="示例图片" style="width: 80%; height: auto;">
 
 ## 使用
