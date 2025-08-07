@@ -293,6 +293,56 @@ document.addEventListener("pointermove", (event) => {
     handlerPointermove(event, window);
 }, false);
 
+let dragText = '';
+let enableDragSearch = true;
+let searchEngine = 'https://www.bing.com/search?q=%s';
+let dragStartPos = null;
+const MIN_DRAG_DISTANCE = 60; // px
+
+// 读取设置
+if (chrome && chrome.storage && chrome.storage.sync) {
+    chrome.storage.sync.get({
+        enableDragSearch: true,
+        searchEngine: 'https://www.bing.com/search?q=%s'
+    }, function (items) {
+        enableDragSearch = items.enableDragSearch;
+        searchEngine = items.searchEngine;
+    });
+}
+
+// dragstart 记录起点和设置图标
+// 注意：setDragImage必须在图片加载后调用
+document.addEventListener('dragstart', function (e) {
+    dragText = window.getSelection().toString().trim();
+    dragStartPos = { x: e.clientX, y: e.clientY };
+    if (!dragText) return; // 没有选中文本时不触发
+    e.dataTransfer.setData('text/plain', dragText); // 必须设置数据，否则浏览器会阻止
+    // 设置自定义拖拽图标
+    e.dataTransfer.setData('text/plain', dragText); // 必须设置数据，否则浏览器会阻止
+    // 设置自定义拖拽图标
+    const img = new Image();
+    img.src = chrome.runtime.getURL('icons/icon.png');
+    img.onload = () => {
+        e.dataTransfer.setDragImage(img, 16, 16);
+    };
+    // 设置允许的拖拽效果
+    e.dataTransfer.effectAllowed = 'link'; // 可选值: copy, move, link 等
+});
+
+document.addEventListener('dragend', function (e) {
+    if (!enableDragSearch) return;
+    if (!dragText) return;
+    if (!dragStartPos) return;
+    const dx = e.clientX - dragStartPos.x;
+    const dy = e.clientY - dragStartPos.y;
+    if (Math.sqrt(dx * dx + dy * dy) >= MIN_DRAG_DISTANCE) {
+        const url = searchEngine.replace('%s', encodeURIComponent(dragText));
+        window.open(url, '_blank');
+    }
+    dragText = '';
+    dragStartPos = null;
+});
+
 function removeGestureBndgCanvas() {
     const canvas = document.querySelector(".gesture-bndg-canvas");
     if (canvas) {
@@ -523,14 +573,14 @@ async function createCalcElement(action) {
                     }
                     setTimeout(() => {
                         inputField.setSelectionRange(inputField.value.length, inputField.value.length);
-                    }, 100); 
+                    }, 100);
                 } else if (event.key === 'ArrowDown') {
                     if (historyIndex > 0) {
                         historyIndex--;
                         inputField.value = bndgInputList[bndgInputList.length - 1 - historyIndex];
                         setTimeout(() => {
                             inputField.setSelectionRange(inputField.value.length, inputField.value.length);
-                        }, 100); 
+                        }, 100);
                     } else if (historyIndex === 0) {
                         historyIndex--;
                         inputField.value = ''; // 清空输入框

@@ -38,7 +38,8 @@
         {
             "resources": [
                 "libs/*",
-                "popup-content.html"
+                "popup-content.html",
+                "icons/icon.png"
             ],
             "matches": [
                 "<all_urls>"

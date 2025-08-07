@@ -14,6 +14,32 @@ chrome.storage.sync.get(['trackColor', 'brushWidth', 'isShowTips'], function (da
     }
 });
 
+// 读取设置
+window.addEventListener('DOMContentLoaded', function() {
+    chrome.storage.sync.get({
+        enableDragSearch: true,
+        searchEngine: 'https://www.bing.com/search?q=%s'
+    }, function(items) {
+        document.getElementById('enableDragSearch').checked = items.enableDragSearch;
+        document.getElementById('searchEngine').value = items.searchEngine;
+    });
+});
+// 保存设置
+if (document.getElementById('enableDragSearch')) {
+    document.getElementById('enableDragSearch').addEventListener('change', function() {
+        chrome.storage.sync.set({
+            enableDragSearch: this.checked
+        });
+    });
+}
+if (document.getElementById('searchEngine')) {
+    document.getElementById('searchEngine').addEventListener('input', function() {
+        chrome.storage.sync.set({
+            searchEngine: this.value
+        });
+    });
+}
+
 // 保存设置
 document.getElementById('save-button').addEventListener('click', function () {
     const color = document.getElementById('color-picker').value;
