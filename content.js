@@ -317,16 +317,30 @@ document.addEventListener('dragstart', function (e) {
     dragStartPos = { x: e.clientX, y: e.clientY };
     if (!dragText) return; // 没有选中文本时不触发
     e.dataTransfer.setData('text/plain', dragText); // 必须设置数据，否则浏览器会阻止
-    // 设置自定义拖拽图标
-    e.dataTransfer.setData('text/plain', dragText); // 必须设置数据，否则浏览器会阻止
-    // 设置自定义拖拽图标
-    const img = new Image();
-    img.src = chrome.runtime.getURL('icons/icon.png');
-    img.onload = () => {
-        e.dataTransfer.setDragImage(img, 16, 16);
-    };
-    // 设置允许的拖拽效果
-    e.dataTransfer.effectAllowed = 'link'; // 可选值: copy, move, link 等
+
+    // 用Canvas生成图标
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    // 画圆
+    ctx.beginPath();
+    ctx.arc(14, 14, 10, 0, 2 * Math.PI);
+    ctx.strokeStyle = '#1976d2';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    // 画把手
+    ctx.beginPath();
+    ctx.moveTo(22, 22);
+    ctx.lineTo(30, 30);
+    ctx.stroke();
+    // 画“搜”字
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillStyle = '#1976d2';
+    ctx.fillText('搜', 8, 22);
+    e.dataTransfer.setDragImage(canvas, 16, 16);
+
+    e.dataTransfer.effectAllowed = 'copy';
 });
 
 document.addEventListener('dragend', function (e) {
@@ -606,4 +620,12 @@ function containsChinese(text) {
     const chineseRegex = /[\u4e00-\u9fa5]/;
     return chineseRegex.test(text);
 }
+
+document.body.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+});
+document.body.addEventListener('drop', function(e) {
+    e.preventDefault();
+});
 
