@@ -35,3 +35,4 @@ Mac上的Edge一直没有内置的手势，扩展市场里也找不到crxMouse G
    3. 打开左边栏“开发者模式”开关。
    4. 点击“加载解压缩的扩展”。
    5. 选择项目的根目录进行加载。
+查找滚动元素的方法来自于https://github.com/imgs/MouseGesture
