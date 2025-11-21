@@ -17,7 +17,7 @@ chrome.storage.sync.get(['trackColor', 'brushWidth', 'isShowTips'], function (da
 // 读取设置
 window.addEventListener('DOMContentLoaded', function() {
     chrome.storage.sync.get({
-        enableDragSearch: true,
+        enableDragSearch: false,
         searchEngine: 'https://www.bing.com/search?q=%s'
     }, function(items) {
         document.getElementById('enableDragSearch').checked = items.enableDragSearch;
@@ -29,6 +29,8 @@ if (document.getElementById('enableDragSearch')) {
     document.getElementById('enableDragSearch').addEventListener('change', function() {
         chrome.storage.sync.set({
             enableDragSearch: this.checked
+        }, function() {
+            showMessage('配置已保存，刷新页面生效');
         });
     });
 }
@@ -36,42 +38,30 @@ if (document.getElementById('searchEngine')) {
     document.getElementById('searchEngine').addEventListener('input', function() {
         chrome.storage.sync.set({
             searchEngine: this.value
+        }, function() {
+            showMessage('配置已保存，刷新页面生效');
         });
     });
 }
 
-// 保存设置
-document.getElementById('save-button').addEventListener('click', function () {
-    const color = document.getElementById('color-picker').value;
-    const width = document.getElementById('brush-width').value;
-    const isShowTips = document.getElementById('show-trace-text').checked;
+// 为颜色选择器添加自动保存功能
+document.getElementById('color-picker').addEventListener('input', function() {
+    chrome.storage.sync.set({ trackColor: this.value }, function() {
+        showMessage('配置已保存，刷新页面生效');
+    });
+});
 
-    chrome.storage.sync.set({ trackColor: color, brushWidth: width, isShowTips: isShowTips }, function () {
-        // 创建提示框
-        const messageBox = document.createElement('div');
-        messageBox.textContent = "设置已保存！";
-        messageBox.style.position = "fixed";
-        messageBox.style.top = "20px";
-        messageBox.style.left = "50%";
-        messageBox.style.transform = "translateX(-50%)";
-        messageBox.style.backgroundColor = "#4CAF50";
-        messageBox.style.color = "#fff";
-        messageBox.style.padding = "10px 20px";
-        messageBox.style.borderRadius = "5px";
-        messageBox.style.zIndex = "1000";
-        messageBox.style.fontSize = "16px";
-        messageBox.style.textAlign = "center";
+// 为画笔宽度添加自动保存功能
+document.getElementById('brush-width').addEventListener('input', function() {
+    chrome.storage.sync.set({ brushWidth: this.value }, function() {
+        showMessage('配置已保存，刷新页面生效');
+    });
+});
 
-        // 将提示框添加到页面中
-        document.body.appendChild(messageBox);
-
-        // 设置定时器，3秒后自动消失
-        setTimeout(function () {
-            messageBox.style.opacity = 0;
-            setTimeout(function () {
-                messageBox.remove();
-            }, 500); // 延迟删除元素，确保淡出效果
-        }, 1200); // 提示框显示3秒
+// 为显示提示复选框添加自动保存功能
+document.getElementById('show-trace-text').addEventListener('change', function() {
+    chrome.storage.sync.set({ isShowTips: this.checked }, function() {
+        showMessage('配置已保存，刷新页面生效');
     });
 });
 
@@ -272,7 +262,7 @@ function updateGestureAction(gestureKey, newActionType) {
                 type: 'updateGestures',
                 customGestures: customGestures
             }, function (response) {
-                showMessage('手势动作已更新');
+                showMessage('配置已保存，刷新页面生效');
             });
         });
     });

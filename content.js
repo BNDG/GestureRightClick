@@ -194,6 +194,7 @@ function handlerPointerdown(event) {
 function handlerPointerup(event) {
     if (event.button === 2 && !isDoubleClick) { // 右键
         ctx.clearRect(0, 0, canvas.width, canvas.height); // 清除画布上的内容
+        findEle = null;
         isRightClicking = false;
         setTimeout(() => {
             removeGestureBndgCanvas();
@@ -290,29 +291,38 @@ document.addEventListener("pointerup", handlerPointerup, false);
 
 // 记录鼠标移动轨迹并绘制
 document.addEventListener("pointermove", (event) => {
-    handlerPointermove(event, window);
+    if (isRightClicking && !isDoubleClick) {
+        if (findEle == null) {
+            findEle = findScrollableContainer();
+        }
+        handlerPointermove(event, findEle || window);
+    }
 }, false);
-
+let findEle = null;
 let dragText = '';
-let enableDragSearch = true;
+let enableDragSearch = false;
 let searchEngine = 'https://www.bing.com/search?q=%s';
 let dragStartPos = null;
 const MIN_DRAG_DISTANCE = 60; // px
 
 // 读取设置
+// 加载用户设置 - 注意：默认值应与options.js保持一致
 if (chrome && chrome.storage && chrome.storage.sync) {
     chrome.storage.sync.get({
-        enableDragSearch: true,
+        enableDragSearch: false, // 与options.js中的默认值保持一致
         searchEngine: 'https://www.bing.com/search?q=%s'
     }, function (items) {
         enableDragSearch = items.enableDragSearch;
         searchEngine = items.searchEngine;
+        console.log('从存储加载的enableDragSearch值:', items.enableDragSearch);
     });
 }
 
 // dragstart 记录起点和设置图标
 // 注意：setDragImage必须在图片加载后调用
 document.addEventListener('dragstart', function (e) {
+    console.log('enableDragSearch', enableDragSearch);
+    if (!enableDragSearch) return; // 如果拖拽搜索功能已禁用，直接返回
     dragText = window.getSelection().toString().trim();
     dragStartPos = { x: e.clientX, y: e.clientY };
     if (!dragText) return; // 没有选中文本时不触发
@@ -621,11 +631,526 @@ function containsChinese(text) {
     return chineseRegex.test(text);
 }
 
-document.body.addEventListener('dragover', function(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
+// 等待DOM完全加载后再添加事件监听器
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.body) {
+        document.body.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        });
+        document.body.addEventListener('drop', function (e) {
+            e.preventDefault();
+        });
+    }
 });
-document.body.addEventListener('drop', function(e) {
-    e.preventDefault();
-});
+// 查找当前页面中的可滚动容器
+function findScrollableContainer() {
+    // 特殊网站处理 - 基于域名的特定选择器
+    const hostname = window.location.hostname;
 
+    // 网站模式配置 - 使用通配符匹配支持更多网站
+    const sitePatterns = [
+        // YouTube及其相关域名
+        {
+            pattern: '*youtube*',
+            selectors: [
+                // 视频播放器页面
+                'ytd-watch-flexy',
+                '#columns #primary-inner',
+                '#columns #primary',
+                'ytd-watch-flexy #primary-inner',
+                'ytd-watch-flexy #primary',
+                // 首页和频道页
+                'ytd-browse',
+                'ytd-browse #contents',
+                'ytd-two-column-browse-results-renderer',
+                '#contents.ytd-rich-grid-renderer',
+                // 搜索结果页
+                'ytd-search',
+                'ytd-search #contents',
+                // 播放列表
+                'ytd-playlist-panel-renderer #items',
+                'ytd-playlist-panel-renderer',
+                // 备用选择器
+                'ytd-page-manager ytd-browse',
+                'ytd-page-manager ytd-search',
+                'ytd-page-manager',
+                '#page-manager',
+                '#content',
+                '#contents'
+            ],
+            genericSelectors: [
+                'ytd-section-list-renderer',
+                'ytd-item-section-renderer',
+                'ytd-rich-grid-renderer',
+                'ytd-rich-item-renderer',
+                'ytd-app'
+            ],
+            isVideoPage: () => !!document.querySelector('ytd-watch-flexy'),
+            videoPageSelector: ['#primary', '#primary-inner']
+        },
+        // 抖音及相关网站
+        {
+            pattern: '*douyin*',
+            selectors: [
+                '.douyin-web__container',
+                '.scroll-container',
+                '.recommend-list-container',
+                '.xgplayer-container'
+            ]
+        },
+        // TikTok (国际版抖音)
+        {
+            pattern: '*tiktok*',
+            selectors: [
+                '.tiktok-web__container',
+                '.scroll-container',
+                '.recommend-list-container',
+                '.xgplayer-container',
+                '.video-card-container',
+                '.feed-content',
+                '.for-you-feed'
+            ]
+        },
+        // 爱奇艺及相关网站
+        {
+            pattern: '*iqiyi*',
+            selectors: [
+                '.qy-scroll-container',
+                '.qy-scroll-content',
+                '.m-video-player-wrap',
+                '.m-box-items'
+            ]
+        },
+        // 腾讯视频
+        {
+            pattern: '*v.qq*',
+            selectors: [
+                '.site_container',
+                '.mod_player',
+                '.mod_episodes',
+                '.container_main',
+                '.mod_row_box',
+                '.mod_pagination'
+            ]
+        },
+        // Bilibili
+        {
+            pattern: '*bilibili*',
+            selectors: [
+                '#bilibiliPlayer',
+                '.video-container',
+                '.player-wrap',
+                '.video-info-container',
+                '.main-container',
+                '.bili-wrapper',
+                '.recommend-list'
+            ]
+        },
+        // 优酷
+        {
+            pattern: '*youku*',
+            selectors: [
+                '.youku-film-player',
+                '.playerBox',
+                '.player-container',
+                '.h5-detail-content',
+                '.h5-detail-player',
+                '.normal-player'
+            ]
+        },
+        // Vimeo
+        {
+            pattern: '*vimeo*',
+            selectors: [
+                '.player_container',
+                '.player_area',
+                '.player',
+                '.content',
+                '.player_container',
+                '.vp-player-layout'
+            ]
+        },
+        // Twitch
+        {
+            pattern: '*twitch*',
+            selectors: [
+                '.persistent-player',
+                '.video-player',
+                '.video-player__container',
+                '.twilight-main',
+                '.stream-chat',
+                '.channel-page'
+            ]
+        },
+        // Netflix
+        {
+            pattern: '*netflix*',
+            selectors: [
+                '.watch-video',
+                '.nfp',
+                '.video-container',
+                '.lolomo',
+                '.mainView',
+                '.gallery'
+            ]
+        }
+    ];
+
+    // 通配符匹配函数
+    const matchPattern = (pattern, text) => {
+        // 转换通配符为正则表达式
+        const regexPattern = pattern
+            .replace(/\./g, '\\.')  // 转义点号
+            .replace(/\*/g, '.*');  // 星号转换为正则通配符
+
+        const regex = new RegExp(`^${regexPattern}$`);
+        return regex.test(text);
+    };
+
+    // 检查域名是否匹配任何配置的模式
+    const findMatchingPatterns = (hostname) => {
+        return sitePatterns.filter(site => {
+            // 尝试直接匹配域名
+            if (matchPattern(site.pattern, hostname)) {
+                return true;
+            }
+
+            // 尝试匹配不带www的域名
+            const domainWithoutWww = hostname.replace(/^www\./, '');
+            if (domainWithoutWww !== hostname && matchPattern(site.pattern, domainWithoutWww)) {
+                return true;
+            }
+
+            // 或者检查域名是否包含模式
+            // 将"*"通配符删除，使用简单的includes检查
+            const simplifiedPattern = site.pattern.replace(/\*/g, '');
+            return simplifiedPattern && hostname.includes(simplifiedPattern);
+        });
+    };
+
+    // 获取手势起始点，优先使用这个位置来确定滚动容器
+    let gestureStartElement = null;
+    if (mouseTrail && mouseTrail.length > 0) {
+        const gestureStartX = mouseTrail[0].x;
+        const gestureStartY = mouseTrail[0].y;
+        gestureStartElement = document.elementFromPoint(gestureStartX, gestureStartY);
+
+        if (gestureStartElement) {
+            console.log('手势起始点在元素:', gestureStartElement.tagName,
+                gestureStartElement.id || gestureStartElement.className);
+        }
+    }
+
+    // 如果手势起始点在特定元素上，优先查找它的可滚动父容器
+    if (gestureStartElement) {
+        let container = gestureStartElement;
+        let depth = 0;
+        const maxDepth = 5;
+
+        while (container && container !== document.body && container !== document.documentElement && depth < maxDepth) {
+            if (isElementScrollable(container)) {
+                console.log('在手势起始位置找到滚动容器:', container.tagName,
+                    container.id || container.className);
+                return container;
+            }
+            container = container.parentElement;
+            depth++;
+        }
+    }
+
+    // 查找匹配的网站模式
+    const matchedSites = findMatchingPatterns(hostname);
+    console.log('匹配到的网站模式:', matchedSites.length > 0 ? matchedSites.map(s => s.pattern).join(', ') : '无');
+
+    // 如果找到匹配的网站，尝试使用其特定选择器
+    if (matchedSites.length > 0) {
+        // 遍历所有匹配的网站模式
+        for (const site of matchedSites) {
+            // 检查是否是视频页面（如果有此检测函数）
+            if (site.isVideoPage && site.isVideoPage() && site.videoPageSelector) {
+                // 尝试视频页面特定选择器
+                for (const selector of site.videoPageSelector) {
+                    const element = document.querySelector(selector);
+                    if (element && isElementScrollable(element)) {
+                        console.log(`找到${site.pattern}视频页面滚动容器:`, selector);
+                        return element;
+                    }
+                }
+            }
+
+            // 尝试网站特定选择器
+            if (site.selectors) {
+                for (const selector of site.selectors) {
+                    const element = document.querySelector(selector);
+                    if (element && isElementScrollable(element)) {
+                        console.log(`找到${site.pattern}网站滚动容器:`, selector);
+                        return element;
+                    }
+                }
+            }
+
+            // 尝试通用选择器（如果有）
+            if (site.genericSelectors) {
+                for (const selector of site.genericSelectors) {
+                    const elements = document.querySelectorAll(selector);
+                    for (const element of elements) {
+                        if (isElementScrollable(element)) {
+                            console.log(`找到${site.pattern}通用滚动容器:`, selector);
+                            return element;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 如果以上都没找到，但有匹配的网站，可能是新版页面结构
+        // 我们仍然尝试使用document.documentElement，而不是寻找其他容器
+        console.log('识别到特定网站但未找到匹配的滚动容器，使用文档根元素');
+        if (isElementScrollable(document.documentElement)) {
+            return document.documentElement;
+        }
+    }
+
+    // 通用选择器 - 已知的视频网站主滚动容器选择器
+    const knownScrollSelectors = [
+        // 通用视频网站常用的滚动容器class
+        '.main-content-container',
+        '.main-content',
+        '.content-wrapper',
+        '.content-container',
+        '.video-feed',
+        '.video-list',
+        '.content-area',
+        '.primary-column',
+        '.main-column',
+        '.scroll-container',
+        '.video-container',
+        '.player-container',
+        '.main-view',
+        '.main-section',
+        '.video-player-container',
+        '.media-player',
+        '.watch-container',
+        '.player-view',
+        '.app-main',
+        '.app-content',
+        '.media-content',
+        '.feed-container'
+    ];
+
+    // 先尝试已知的选择器
+    for (const selector of knownScrollSelectors) {
+        const element = document.querySelector(selector);
+        if (element && isElementScrollable(element)) {
+            console.log('找到通用滚动容器:', selector);
+            return element;
+        }
+    }
+
+    // 如果没有找到已知的滚动容器，尝试检测页面中的滚动容器
+    return detectScrollableContainer();
+}
+// 检测页面中的滚动容器
+function detectScrollableContainer() {
+    // 首先检查文档根元素是否可滚动
+    if (isElementScrollable(document.documentElement)) {
+        return document.documentElement;
+    }
+
+    // 然后检查body元素是否可滚动
+    if (isElementScrollable(document.body)) {
+        return document.body;
+    }
+
+    // 使用手势起始点来确定最适合的滚动容器
+    // 如果手势起始点可用，则优先从该点寻找可滚动容器
+    if (mouseTrail && mouseTrail.length > 0) {
+        const gestureStartX = mouseTrail[0].x;
+        const gestureStartY = mouseTrail[0].y;
+
+        // 从手势起始点获取元素
+        const elementAtGestureStart = document.elementFromPoint(gestureStartX, gestureStartY);
+
+        if (elementAtGestureStart) {
+            // 向上查找可能的滚动容器
+            let container = elementAtGestureStart;
+            let depth = 0;
+            const maxDepth = 5; // 限制向上查找深度
+
+            while (container && container !== document.body && container !== document.documentElement && depth < maxDepth) {
+                if (isElementScrollable(container)) {
+                    const rect = container.getBoundingClientRect();
+                    // 确保容器足够大(至少占视口宽度的50%或高度的30%)
+                    if (rect.width > window.innerWidth * 0.5 || rect.height > window.innerHeight * 0.3) {
+                        console.log('使用手势起始点找到滚动容器:', container);
+                        return container;
+                    }
+                }
+                container = container.parentElement;
+                depth++;
+            }
+        }
+    }
+
+    // 优先检查这些常见的主内容容器
+    const mainContentSelectors = [
+        'main',
+        '#main',
+        '#content',
+        '.content',
+        '#app',
+        '.app',
+        '.main-content'
+    ];
+
+    for (const selector of mainContentSelectors) {
+        const elements = document.querySelectorAll(selector);
+        for (const element of elements) {
+            if (isElementScrollable(element)) {
+                // 如果找到可滚动的主内容容器，优先返回
+                return element;
+            }
+        }
+    }
+
+    // 尝试查找视口中心和下半部分的可滚动元素
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const viewportCenter = { x: viewportWidth / 2, y: viewportHeight / 2 };
+
+    // 在视口中心点和下半部分寻找元素
+    // 优先在中心区域检查，避免导航栏等边缘元素
+    for (let y = viewportCenter.y; y < viewportHeight * 0.9; y += 50) {
+        const element = document.elementFromPoint(viewportCenter.x, y);
+        if (element) {
+            // 向上查找可能的滚动容器
+            let container = element;
+            let depth = 0;
+            // 限制向上查找的深度，以避免到达顶层容器
+            const maxDepth = 5;
+
+            while (container && container !== document.body && container !== document.documentElement && depth < maxDepth) {
+                if (isElementScrollable(container)) {
+                    const rect = container.getBoundingClientRect();
+                    // 确保容器足够大(至少占视口宽度的50%和高度的30%)
+                    if (rect.width > viewportWidth * 0.5 && rect.height > viewportHeight * 0.3) {
+                        return container;
+                    }
+                }
+                container = container.parentElement;
+                depth++;
+            }
+        }
+    }
+
+    // 如果在中心区域没找到，检查整个文档中的大型可滚动元素
+    const allElements = document.querySelectorAll('*');
+    let bestContainer = null;
+    let maxArea = 0;
+
+    for (const element of allElements) {
+        if (isElementScrollable(element)) {
+            const rect = element.getBoundingClientRect();
+            const area = rect.width * rect.height;
+
+            // 找出最大的可滚动区域，但避免整个文档
+            if (area > maxArea && element !== document.documentElement && element !== document.body) {
+                // 额外检查：确保元素不是左侧导航栏或其他辅助UI
+                // 通常主内容区域会位于较中央的位置
+                const centerOffset = Math.abs((rect.left + rect.right) / 2 - viewportWidth / 2);
+                // 如果元素中心与视口中心的水平偏移较小，更可能是主内容
+                if (centerOffset < viewportWidth * 0.3) {
+                    maxArea = area;
+                    bestContainer = element;
+                }
+            }
+        }
+    }
+
+    if (bestContainer) {
+        return bestContainer;
+    }
+
+    // 默认返回document.scrollingElement
+    return document.scrollingElement || document.documentElement;
+}
+
+// 检查元素是否可滚动
+function isElementScrollable(element) {
+    if (!element) return false;
+
+    try {
+        // 检查文档根或body元素（这些总是可滚动的）
+        if (element === document.documentElement || element === document.body) {
+            return element.scrollHeight > element.clientHeight;
+        }
+
+        const style = window.getComputedStyle(element);
+
+        // 检查常见的可滚动样式
+        const hasScrollableStyle =
+            style.overflow === 'auto' ||
+            style.overflow === 'scroll' ||
+            style.overflowY === 'auto' ||
+            style.overflowY === 'scroll';
+
+        // 有些元素即使是overflow:hidden，但内容超出也可以滚动
+        const potentiallyScrollableWithHidden =
+            style.overflow === 'hidden' ||
+            style.overflowY === 'hidden';
+
+        // 检查元素内容是否超出容器高度
+        const hasScrollHeight = element.scrollHeight > element.clientHeight;
+
+        // 额外检查：避免选择太小的容器
+        const rect = element.getBoundingClientRect();
+
+        // 检查特殊角色属性
+        const role = element.getAttribute('role');
+        const isScrollableRole = role === 'scrollbar' || role === 'listbox' ||
+            role === 'grid' || role === 'tree';
+
+        // 检查常见的可滚动类名
+        const className = element.className || '';
+        const hasScrollableClass = /\b(scroll|scrollable|overflow|content)\b/i.test(className);
+
+        // 为特殊元素调整大小要求
+        let isLargeEnough = true;
+        if (isScrollableRole || hasScrollableClass) {
+            // 对于有明确滚动指示的元素，大小要求可以放宽
+            isLargeEnough = rect.width > 100 && rect.height > 50;
+        } else {
+            // 对于普通元素，保持较严格的大小要求
+            isLargeEnough = rect.width > 200 && rect.height > 100;
+        }
+
+        // 检查是否在视口内
+        const isInViewport =
+            rect.top < window.innerHeight &&
+            rect.left < window.innerWidth &&
+            rect.bottom > 0 &&
+            rect.right > 0;
+
+        // 普通滚动条件
+        if (hasScrollableStyle && hasScrollHeight && isLargeEnough && isInViewport) {
+            return true;
+        }
+
+        // 特殊处理：即使overflow:hidden，但内容超出且有明确滚动特征的元素
+        if (potentiallyScrollableWithHidden && hasScrollHeight &&
+            (isScrollableRole || hasScrollableClass) && isInViewport) {
+            return true;
+        }
+
+        // 特殊处理：无样式但有明显滚动特征的元素
+        if (hasScrollHeight && isScrollableRole && isLargeEnough && isInViewport) {
+            return true;
+        }
+
+        return false;
+    } catch (error) {
+        // 如果获取样式出错，默认返回false
+        return false;
+    }
+}
